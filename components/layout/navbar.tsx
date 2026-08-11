@@ -18,15 +18,9 @@ import {
 } from "@/components/ui/dropdown";
 
 export function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }): React.ReactElement {
-  const pathname = usePathname();
-  const isApp =
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/editor") ||
-    pathname.startsWith("/settings") ||
-    pathname.startsWith("/projects");
   const sizes = { sm: "h-7 w-7", md: "h-8 w-8", lg: "h-10 w-10" };
   return (
-    <Link href={isApp ? "/dashboard" : "/"} className="group flex items-center gap-2.5" aria-label="ArchVision AI home">
+    <Link href="/" className="group flex items-center gap-2.5" aria-label="ArchVision AI home">
       <span
         className={cn(
           "relative flex items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-deep text-white shadow-btn-primary transition-transform duration-300 group-hover:scale-105",
