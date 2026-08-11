@@ -21,6 +21,9 @@ import { mermaidForType } from "@/types/diagram";
  *
  * Every method returns a Promise so the same client code path works in
  * both modes. Local mode is the default and keeps working without a DB.
+ * In db mode, a runtime health check runs at module init: if the database
+ * is unreachable, the session transparently falls back to localStorage
+ * (see checkDbHealth below).
  */
 
 const STORAGE_KEY = "archvision-store-v1";
@@ -116,18 +119,58 @@ type RepositoryOp =
   | "reset";
 
 async function callDb<T>(op: RepositoryOp, ...args: unknown[]): Promise<T> {
+  return dbRequest<T>(op, args, undefined);
+}
+
+async function callDbWithTimeout<T>(op: RepositoryOp, timeoutMs: number): Promise<T> {
+  return dbRequest<T>(op, [], timeoutMs);
+}
+
+async function dbRequest<T>(op: RepositoryOp, args: unknown[], timeoutMs: number | undefined): Promise<T> {
   const base =
     typeof window === "undefined" ? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000") : "";
-  const res = await fetch(`${base}/api/storage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ op, payload: args.length <= 1 ? args[0] ?? null : args }),
-  });
-  const json = (await res.json()) as { ok: boolean; data?: unknown; error?: string };
-  if (!res.ok || !json.ok) {
-    throw new Error(json.error ?? `Storage operation "${op}" failed`);
+  const controller = new AbortController();
+  const timer = timeoutMs ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    const res = await fetch(`${base}/api/storage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op, payload: args.length <= 1 ? args[0] ?? null : args }),
+      signal: controller.signal,
+    });
+    const json = (await res.json()) as { ok: boolean; data?: unknown; error?: string };
+    if (!res.ok || !json.ok) {
+      throw new Error(json.error ?? `Storage operation "${op}" failed`);
+    }
+    return json.data as T;
+  } finally {
+    if (timer) clearTimeout(timer);
   }
-  return json.data as T;
+}
+
+/* ----------------- DB health check: fall back to localStorage when the DB is unreachable ----------------- */
+
+let dbAvailable = DB_MODE;
+let dbHealthCheck: Promise<boolean> | null = null;
+
+async function checkDbHealth(): Promise<boolean> {
+  if (!DB_MODE) return false;
+  if (dbHealthCheck) return dbHealthCheck;
+  dbHealthCheck = (async () => {
+    try {
+      await callDbWithTimeout("listProjects", 3000);
+      dbAvailable = true;
+    } catch (error) {
+      console.warn("[storage] Database unreachable — falling back to localStorage for this session.", error);
+      dbAvailable = false;
+    }
+    return dbAvailable;
+  })();
+  return dbHealthCheck;
+}
+
+if (typeof window !== "undefined") {
+  void checkDbHealth();
 }
 
 /* ------------------------- local mode (localStorage) ------------------------- */
@@ -274,85 +317,85 @@ function localReset(): void {
 /* -------------------------------- facade -------------------------------- */
 
 export const storage = {
-  storageMode: (): string => (DB_MODE ? "db" : "local"),
+  storageMode: (): string => (DB_MODE && dbAvailable ? "db" : "local"),
 
   async listProjects(): Promise<Project[]> {
-    if (DB_MODE) return callDb("listProjects");
+    if (DB_MODE && (await checkDbHealth())) return callDb("listProjects");
     return localListProjects();
   },
   async listDiagrams(projectId: string | null): Promise<Diagram[]> {
-    if (DB_MODE) return callDb("listDiagrams", projectId);
+    if (DB_MODE && (await checkDbHealth())) return callDb("listDiagrams", projectId);
     return localListDiagrams(projectId);
   },
   async getDiagram(id: string): Promise<Diagram | null> {
-    if (DB_MODE) return callDb("getDiagram", id);
+    if (DB_MODE && (await checkDbHealth())) return callDb("getDiagram", id);
     return localGetDiagram(id);
   },
   async createProject(input: { name: string; description?: string }): Promise<Project> {
-    if (DB_MODE) return callDb("createProject", input);
+    if (DB_MODE && (await checkDbHealth())) return callDb("createProject", input);
     return localCreateProject(input);
   },
   async createDiagram(draft: DiagramDraft, projectId: string, mermaidCode?: string): Promise<Diagram> {
-    if (DB_MODE) return callDb("createDiagram", draft, projectId, mermaidCode);
+    if (DB_MODE && (await checkDbHealth())) return callDb("createDiagram", draft, projectId, mermaidCode);
     return localCreateDiagram(draft, projectId, mermaidCode);
   },
   async updateDiagram(id: string, patch: Partial<Pick<Diagram, "name" | "mermaidCode" | "viewMode" | "isValid" | "validationScore">>): Promise<Diagram | null> {
-    if (DB_MODE) return callDb("updateDiagram", id, patch);
+    if (DB_MODE && (await checkDbHealth())) return callDb("updateDiagram", id, patch);
     return localUpdateDiagram(id, patch);
   },
   async deleteDiagram(id: string): Promise<void> {
-    if (DB_MODE) {
+    if (DB_MODE && (await checkDbHealth())) {
       await callDb("deleteDiagram", id);
       return;
     }
     localDeleteDiagram(id);
   },
   async recordPrompt(entry: Omit<PromptHistoryEntry, "id" | "createdAt">): Promise<void> {
-    if (DB_MODE) {
+    if (DB_MODE && (await checkDbHealth())) {
       await callDb("recordPrompt", entry);
       return;
     }
     localRecordPrompt(entry);
   },
   async listPromptHistory(diagramId: string): Promise<PromptHistoryEntry[]> {
-    if (DB_MODE) return callDb("listPromptHistory", diagramId);
+    if (DB_MODE && (await checkDbHealth())) return callDb("listPromptHistory", diagramId);
     return localListPromptHistory(diagramId);
   },
   async saveValidation(diagramId: string, result: ValidationResult): Promise<void> {
-    if (DB_MODE) {
+    if (DB_MODE && (await checkDbHealth())) {
       await callDb("saveValidation", diagramId, result);
       return;
     }
     localSaveValidation(diagramId, result);
   },
   async getValidation(diagramId: string): Promise<Array<{ issues: ValidationIssue[]; score: number; createdAt: string }> | null> {
-    if (DB_MODE) return callDb("getValidation", diagramId);
+    if (DB_MODE && (await checkDbHealth())) return callDb("getValidation", diagramId);
     return localGetValidation(diagramId);
   },
   async listVersions(diagramId: string): Promise<DiagramVersion[]> {
-    if (DB_MODE) return callDb("listVersions", diagramId);
+    if (DB_MODE && (await checkDbHealth())) return callDb("listVersions", diagramId);
     return localListVersions(diagramId);
   },
   async saveVersion(diagramId: string, version: DiagramVersion): Promise<void> {
-    if (DB_MODE) {
+    if (DB_MODE && (await checkDbHealth())) {
       await callDb("saveVersion", diagramId, version);
       return;
     }
     localSaveVersion(diagramId, version);
   },
   async recordsChange(diagramId: string, summary: string): Promise<void> {
-    if (DB_MODE) {
+    if (DB_MODE && (await checkDbHealth())) {
       await callDb("recordsChange", diagramId, summary);
       return;
     }
     localRecordsChange(diagramId, summary);
   },
   async listChanges(diagramId: string, limit = 30): Promise<Array<{ at: string; summary: string }>> {
-    if (DB_MODE) return callDb("listChanges", { diagramId, limit });
+    if (DB_MODE && (await checkDbHealth())) return callDb("listChanges", { diagramId, limit });
     return localListChanges(diagramId, limit);
   },
   async reset(): Promise<void> {
-    if (DB_MODE) {
+    if (DB_MODE && (await checkDbHealth())) {
       await callDb("reset");
       return;
     }
