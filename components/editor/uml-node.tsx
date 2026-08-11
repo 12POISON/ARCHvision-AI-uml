@@ -13,7 +13,7 @@ const VISIBILITY_ICON: Record<string, string> = {
 };
 
 /** One handle pair (source + target) per side — draw.io-style 4-way wiring. */
-function SideHandles({ side }: { side: Position }): React.ReactElement {
+export function SideHandles({ side }: { side: Position }): React.ReactElement {
   const base =
     side === Position.Top || side === Position.Bottom
       ? "!left-1/2 !-translate-x-1/2"
@@ -42,7 +42,7 @@ function SideHandles({ side }: { side: Position }): React.ReactElement {
   );
 }
 
-const KIND_STYLE: Record<ArchitectureNodeKind, { header: string; dot: string } | undefined> = {
+const KIND_STYLE: Partial<Record<ArchitectureNodeKind, { header: string; dot: string }>> = {
   class: undefined,
   abstract: undefined,
   interface: { header: "border-primary/25 bg-primary/5", dot: "bg-primary/70" },
@@ -63,19 +63,130 @@ const KIND_STYLE: Record<ArchitectureNodeKind, { header: string; dot: string } |
   state: { header: "border-cyan-200 bg-cyan-50", dot: "bg-cyan-500" },
 };
 
+interface InlineCallbacks {
+  onRenameNode?: (name: string) => void;
+  onAddAttribute?: () => void;
+  onAddMethod?: () => void;
+}
+
+function InlineNameEdit({ value, onCommit }: { value: string; onCommit: (next: string) => void }): React.ReactElement {
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState(value);
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            const next = draft.trim();
+            if (next) onCommit(next);
+            setEditing(false);
+          }
+          if (e.key === "Escape") setEditing(false);
+        }}
+        onBlur={() => {
+          const next = draft.trim();
+          if (next && next !== value) onCommit(next);
+          setEditing(false);
+        }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full rounded border border-[#0052CC] bg-white px-1 py-0.5 text-center font-bold outline-none"
+        aria-label="Rename node"
+      />
+    );
+  }
+  return (
+    <p
+      title="Double-click to rename"
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        setDraft(value);
+        setEditing(true);
+      }}
+      className="truncate cursor-text font-bold tracking-tight text-foreground"
+    >
+      {value}
+    </p>
+  );
+}
+
+function QuickAddRow({
+  selected,
+  onAddAttribute,
+  onAddMethod,
+}: {
+  selected: boolean;
+  onAddAttribute?: () => void;
+  onAddMethod?: () => void;
+}): React.ReactElement | null {
+  if (!selected) return null;
+  return (
+    <div className="flex items-center justify-center gap-1 border-t border-line bg-surface/60 px-2 py-1">
+      <button
+        type="button"
+        title="Add attribute"
+        onClick={(e) => {
+          e.stopPropagation();
+          onAddAttribute?.();
+        }}
+        className="rounded px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-primary opacity-60 transition-opacity hover:bg-primary/10 hover:opacity-100"
+      >
+        + field
+      </button>
+      <button
+        type="button"
+        title="Add method"
+        onClick={(e) => {
+          e.stopPropagation();
+          onAddMethod?.();
+        }}
+        className="rounded px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-primary opacity-60 transition-opacity hover:bg-primary/10 hover:opacity-100"
+      >
+        + method
+      </button>
+    </div>
+  );
+}
+
 function UMLClassNode({ data, selected }: NodeProps<UMLFlowNode>): React.ReactElement {
   const { label, stereotype, isAbstract, isInterface, kind, attributes, methods, viewMode } = data;
   const isExecutive = viewMode === "EXECUTIVE";
   const style = KIND_STYLE[kind];
   const italic = isAbstract || isInterface;
+  const customStyle = (data as { style?: { fill?: string; border?: string; fontSize?: number } }).style;
+  const tone = (data as { relationshipTone?: "in" | "out" | "both" | "none" }).relationshipTone;
+  const toneBorder =
+    !customStyle?.border && tone && tone !== "none"
+      ? tone === "out"
+        ? "border-sky-400"
+        : tone === "in"
+          ? "border-amber-400"
+          : "border-violet-400"
+      : undefined;
 
   return (
     <div
       className={cn(
         "uml-node group w-[232px] overflow-hidden rounded-2xl border bg-white shadow-card transition-all duration-300",
-        selected ? "border-blue-500 ring-2 ring-blue-500/20" : isInterface ? "border-primary/40" : isAbstract ? "border-accent/60" : "border-line",
+        selected ? "border-blue-500 ring-2 ring-blue-500/20" : isInterface ? "border-primary/40" : isAbstract ? "border-accent/60" : toneBorder ?? "border-line",
         isExecutive && "w-[280px]"
       )}
+      title={
+        tone && tone !== "none" && !customStyle?.border
+          ? tone === "out"
+            ? "Source — more outgoing than incoming relationships"
+            : tone === "in"
+              ? "Dependent — more incoming than outgoing relationships"
+              : "Transformer — both incoming and outgoing relationships"
+          : undefined
+      }
+      style={{
+        ...(customStyle?.fill ? { backgroundColor: customStyle.fill } : {}),
+        ...(customStyle?.border ? { borderColor: customStyle.border } : {}),
+        ...(customStyle?.fontSize ? { fontSize: customStyle.fontSize } : {}),
+      }}
       aria-label={`${kind} ${label}`}
     >
       <div
@@ -89,15 +200,15 @@ function UMLClassNode({ data, selected }: NodeProps<UMLFlowNode>): React.ReactEl
           {stereotype ? (
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{stereotype}</p>
           ) : null}
-          <p
+          <div
             className={cn(
               "truncate font-bold tracking-tight text-foreground",
               isExecutive ? "text-base" : "text-[13.5px]",
               italic && "italic"
             )}
           >
-            {label}
-          </p>
+            <InlineNameEdit value={label} onCommit={(next) => (data as unknown as InlineCallbacks).onRenameNode?.(next)} />
+          </div>
         </div>
       </div>
 
@@ -144,6 +255,11 @@ function UMLClassNode({ data, selected }: NodeProps<UMLFlowNode>): React.ReactEl
       <SideHandles side={Position.Right} />
       <SideHandles side={Position.Top} />
       <SideHandles side={Position.Bottom} />
+      <QuickAddRow
+        selected={selected}
+        onAddAttribute={(data as unknown as InlineCallbacks).onAddAttribute}
+        onAddMethod={(data as unknown as InlineCallbacks).onAddMethod}
+      />
     </div>
   );
 }

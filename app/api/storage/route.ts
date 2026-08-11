@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { repository } from "@/lib/data/repository";
 
 /**
@@ -37,6 +38,11 @@ interface StorageRequest {
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   if (process.env.NEXT_PUBLIC_DATA_MODE !== "db") {
     return NextResponse.json(
       {

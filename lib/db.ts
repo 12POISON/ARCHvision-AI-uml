@@ -22,7 +22,3 @@ export const db: PrismaClient = globalForPrisma.prisma ?? createClient();
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = db;
 }
-
-export function isDatabaseConfigured(): boolean {
-  return Boolean(process.env.DATABASE_URL);
-}

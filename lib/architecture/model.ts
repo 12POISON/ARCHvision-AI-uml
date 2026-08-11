@@ -74,6 +74,44 @@ const KIND_BY_NAME: Array<[RegExp, ArchitectureNodeKind]> = [
   [/entity$/i, "entity"],
 ];
 
+const UML_SHAPE_STEREOTYPES: Record<string, ArchitectureNodeKind> = {
+  usecase: "usecase",
+  note: "note",
+  constraint: "constraint",
+  lifeline: "lifeline",
+  start: "start",
+  end: "end",
+  decision: "decision",
+  activity: "activity",
+  fork: "fork",
+  initial: "initial",
+  final: "final",
+  swimlane: "swimlane",
+  node: "node",
+  artifact: "artifact",
+  port: "port",
+  "weak-entity": "weak-entity",
+  attribute: "attribute",
+  "derived-attribute": "derived-attribute",
+  relationship: "relationship",
+  "weak-relationship": "weak-relationship",
+  cloud: "cloud",
+  parallelogram: "parallelogram",
+  document: "document",
+  circle: "circle",
+  diamond: "diamond",
+  rect: "rect",
+  "rounded-rect": "rounded-rect",
+  package: "package",
+  activation: "activation",
+  fragment: "fragment",
+  destroy: "destroy",
+  message: "message",
+  "return-message": "return-message",
+  "self-message": "self-message",
+  transition: "transition",
+};
+
 export function inferNodeKind(name: string, stereotype: string | null = null): ArchitectureNodeKind {
   const st = (stereotype ?? "").toLowerCase();
   if (st === "interface") return "interface";
@@ -84,6 +122,13 @@ export function inferNodeKind(name: string, stereotype: string | null = null): A
   if (st === "repository") return "repository";
   if (st === "component") return "component";
   if (st === "actor") return "actor";
+  if (st === "database" || st === "db") return "database";
+  if (st === "enum" || st === "enumeration") return "enum";
+  if (st === "boundary") return "boundary";
+  if (st === "event") return "event";
+  if (st === "state") return "state";
+  const shape = UML_SHAPE_STEREOTYPES[st];
+  if (shape) return shape;
   for (const [regex, kind] of KIND_BY_NAME) {
     if (regex.test(name)) return kind;
   }

@@ -34,7 +34,7 @@ type SuggestionAction = (typeof SUGGESTIONS)[number]["action"] | "why";
 type Suggestion = (typeof SUGGESTIONS)[number];
 
 export function AISidebar({ engine, open, onClose }: AISidebarProps): React.ReactElement | null {
-  const { streaming, error, stream } = useAIChat();
+  const { streaming, error, fallback, stream } = useAIChat();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
   const [suggestions, setSuggestions] = React.useState<Suggestion[]>(() => [...SUGGESTIONS]);
@@ -113,7 +113,14 @@ export function AISidebar({ engine, open, onClose }: AISidebarProps): React.Reac
         onError: (errorMessage) => {
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantMessage.id ? { ...m, content: `⚠️ ${errorMessage}` } : m
+              m.id === assistantMessage.id
+                ? {
+                    ...m,
+                    content: fallback
+                      ? "Offline mode — local engine active. Your message was analyzed locally."
+                      : `⚠️ ${errorMessage}`,
+                  }
+                : m
             )
           );
         },
@@ -272,7 +279,13 @@ export function AISidebar({ engine, open, onClose }: AISidebarProps): React.Reac
           </button>
         </div>
         <p className="mt-2 text-center text-[10.5px] text-muted-foreground">
-          {error ? <span className="text-error">{error}</span> : "Streaming results · prompts saved to history"}
+          {error ? (
+            <span className={fallback ? "text-gray-500" : "text-error"}>
+              {fallback ? "Offline mode — local engine active" : error}
+            </span>
+          ) : (
+            "Streaming results · prompts saved to history"
+          )}
         </p>
       </div>
     </motion.aside>

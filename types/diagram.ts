@@ -313,7 +313,43 @@ export type ArchitectureNodeKind =
   | "database"
   | "api"
   | "event"
-  | "state";
+  | "state"
+  /* --- Creately-style UML shape library kinds (round-trip via <<stereotype>>) --- */
+  | "usecase"
+  | "note"
+  | "constraint"
+  | "lifeline"
+  | "start"
+  | "end"
+  | "decision"
+  | "activity"
+  | "fork"
+  | "initial"
+  | "final"
+  | "swimlane"
+  | "node"
+  | "artifact"
+  | "port"
+  | "weak-entity"
+  | "attribute"
+  | "derived-attribute"
+  | "relationship"
+  | "weak-relationship"
+  | "cloud"
+  | "parallelogram"
+  | "document"
+  | "circle"
+  | "diamond"
+  | "rect"
+  | "rounded-rect"
+  /* --- sequence/annotation shapes (drop-on-canvas annotations) --- */
+  | "activation"
+  | "fragment"
+  | "destroy"
+  | "message"
+  | "return-message"
+  | "self-message"
+  | "transition";
 
 export type RelationshipMultiplicity = string; // "1" | "0..1" | "0..*" | "1..*" | "n" | "m..n"
 
@@ -356,6 +392,14 @@ export interface ArchitectureNode {
   /** ER diagrams: true when the table was never declared with a block and
    * only appeared as an endpoint of a relationship. */
   implicit?: boolean;
+  /** Client-side presentation (not serialized to Mermaid): fill/border/font. */
+  style?: {
+    fill?: string;
+    border?: string;
+    fontSize?: number;
+    width?: number;
+    height?: number;
+  };
 }
 
 export type ArchitectureRelationshipType =
@@ -371,7 +415,9 @@ export type ArchitectureRelationshipType =
   | "transition"
   | "include"
   | "extend"
-  | "return";
+  | "return"
+  | "message"
+  | "async";
 
 export interface ArchitectureRelationship {
   id: string;
@@ -385,6 +431,18 @@ export interface ArchitectureRelationship {
   action: string | null; // e.g. "retrieves", "persists", "authenticates"
   foreignKeyColumn: string | null; // ER diagrams: FK column on target end
   description?: string | null; // the requirement sentence that produced it
+  /** Role names near each endpoint (client-rendered; not in Mermaid). */
+  sourceRole?: string | null;
+  targetRole?: string | null;
+  /** Client-side presentation (not serialized to Mermaid). */
+  style?: {
+    color?: string;
+    width?: number;
+    dash?: string;
+    routing?: "orthogonal" | "straight" | "curved";
+  };
+  /** Manually placed bend points for orthogonal routing (flow coordinates). */
+  waypoints?: Array<{ x: number; y: number }>;
 }
 
 export interface Architecture {
@@ -419,5 +477,7 @@ export const RELATIONSHIP_LABELS: Record<ArchitectureRelationshipType, string> =
   transition: "Transition",
   include: "Include",
   extend: "Extend",
-  return: "Return",
+  return: "Return Message",
+  message: "Message",
+  async: "Async Message",
 };

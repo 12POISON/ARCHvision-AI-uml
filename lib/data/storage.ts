@@ -12,6 +12,7 @@ import type {
 import type { DiagramVersion } from "@/lib/architecture/versions";
 import { generateId } from "@/lib/utils";
 import { mermaidForType } from "@/types/diagram";
+import { toast } from "@/components/ui/toast";
 
 /**
  * Storage facade — async, mode-aware.
@@ -163,6 +164,9 @@ async function checkDbHealth(): Promise<boolean> {
     } catch (error) {
       console.warn("[storage] Database unreachable — falling back to localStorage for this session.", error);
       dbAvailable = false;
+      if (typeof window !== "undefined") {
+        toast("info", "Working offline — diagrams saved locally");
+      }
     }
     return dbAvailable;
   })();
@@ -391,7 +395,7 @@ export const storage = {
     localRecordsChange(diagramId, summary);
   },
   async listChanges(diagramId: string, limit = 30): Promise<Array<{ at: string; summary: string }>> {
-    if (DB_MODE && (await checkDbHealth())) return callDb("listChanges", { diagramId, limit });
+    if (DB_MODE && (await checkDbHealth())) return callDb("listChanges", diagramId, limit);
     return localListChanges(diagramId, limit);
   },
   async reset(): Promise<void> {

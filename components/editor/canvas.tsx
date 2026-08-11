@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import {
@@ -18,14 +18,20 @@ import {
   type XYPosition,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { RELATION_SPECS } from "@/types/diagram";
+import type { ArchitectureNodeKind } from "@/types/diagram";
 import type { DiagramEngine } from "@/hooks/useDiagram";
 import type { UMLFlowEdge, UMLFlowNode } from "@/lib/mermaid/transformer";
 import { computeLayeredLayout } from "@/lib/editor/layout";
+import type { Point } from "@/lib/editor/orthogonal";
 import { EMPTY_COMMENTS, useCommentsStore } from "@/lib/editor/comments";
+import { RELATION_GROUPS, RELATION_SPECS_EXTENDED, RELATION_TYPE_ORDER } from "@/lib/editor/relations";
 import { StatusBar } from "@/components/editor/status-bar";
 import { toast } from "@/components/ui/toast";
-import { BoxSelect, Clipboard, LayoutGrid, Maximize, MessageSquarePlus } from "lucide-react";
+import { defaultAttribute, defaultMethod, KIND_LABELS } from "@/lib/architecture/editing";
+import { shapeByKind } from "@/lib/editor/shapes";
+import { BoxSelect, Clipboard, LayoutGrid, Maximize, MessageSquarePlus, Plus, Trash2 } from "lucide-react";
+
+type UmlRelationType = (typeof RELATION_TYPE_ORDER)[number];
 
 interface CanvasProps {
   diagramId: string;
@@ -33,7 +39,7 @@ interface CanvasProps {
 }
 
 const NODE_TYPES = {
-  uml: React.lazy(() => import("@/components/editor/uml-node")),
+  uml: React.lazy(() => import("@/components/editor/uml-shapes")),
   "actor-node": React.lazy(() =>
     import("@/components/editor/uml-node").then((m) => ({ default: m.UMLActorNodeComponent }))
   ),
@@ -65,25 +71,17 @@ function savePositions(diagramId: string, positions: Record<string, { x: number;
   try {
     window.localStorage.setItem(positionKey(diagramId), JSON.stringify(positions));
   } catch {
-    /* storage full or unavailable — positions are a convenience, not critical */
+    /* storage full or unavailable â€” positions are a convenience, not critical */
   }
 }
 
 function nodeSignature(nodes: UMLFlowNode[], edges: UMLFlowEdge[]): string {
-  const nodePart = nodes.map((n) => `${n.id}:${n.type}`).join(",");
+  const nodePart = nodes
+    .map((n) => `${n.id}:${n.type}:${JSON.stringify(n.style ?? {})}`)
+    .join(",");
   const edgePart = edges.map((e) => `${e.id}:${e.source}:${e.target}`).join(",");
   return `${nodes.length}|${nodePart}|${edges.length}|${edgePart}`;
 }
-
-const RELATION_TYPE_ORDER = [
-  "association",
-  "dependency",
-  "inheritance",
-  "aggregation",
-  "composition",
-  "implementation",
-] as const;
-type UmlRelationType = (typeof RELATION_TYPE_ORDER)[number];
 
 function ConnectionTypeDialog({
   open,
@@ -109,23 +107,41 @@ function ConnectionTypeDialog({
         if (e.target === e.currentTarget) onCancel();
       }}
     >
-      <div className="w-[340px] rounded-2xl border border-line bg-white p-5 shadow-panel-float">
+      <div className="w-[380px] rounded-2xl border border-line bg-white p-5 shadow-panel-float">
         <p className="text-[13px] font-bold text-foreground">New relationship</p>
         <p className="mt-1 truncate text-[12px] text-muted-foreground">
-          {sourceLabel} <span className="mx-1 text-slate-400">→</span> {targetLabel}
+          {sourceLabel} <span className="mx-1 text-slate-400">â†’</span> {targetLabel}
         </p>
-        <div className="mt-4 grid grid-cols-1 gap-2">
-          {RELATION_TYPE_ORDER.map((type) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => onPick(type)}
-              className="flex items-center gap-3 rounded-xl border border-line px-3 py-2 text-left text-[12.5px] font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5"
-            >
-              <span className="w-10 shrink-0 font-mono text-[11px] text-primary">{RELATION_SPECS[type].mermaid}</span>
-              {RELATION_SPECS[type].label}
-            </button>
-          ))}
+        <div className="mt-4 grid max-h-[46vh] grid-cols-1 gap-2 overflow-y-auto pr-1">
+          {RELATION_GROUPS.map((group) => {
+            const types = RELATION_TYPE_ORDER.filter(
+              (t) => RELATION_SPECS_EXTENDED[t].group === group.id
+            );
+            if (types.length === 0) return null;
+            return (
+              <div key={group.id}>
+                <p className="mb-1.5 mt-2 text-[10.5px] font-bold uppercase tracking-wide text-slate-400">
+                  {group.label}
+                </p>
+                {types.map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => onPick(type)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-line px-3 py-2 text-left text-[12.5px] font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5"
+                  >
+                    <span className="w-24 shrink-0 font-mono text-[11px] text-primary">
+                      {RELATION_SPECS_EXTENDED[type].mermaid}
+                    </span>
+                    <span className="flex-1">{RELATION_SPECS_EXTENDED[type].label}</span>
+                    <span className="hidden text-[10.5px] font-normal text-slate-400 md:block">
+                      {RELATION_SPECS_EXTENDED[type].description}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            );
+          })}
         </div>
         <button
           type="button"
@@ -183,6 +199,40 @@ interface GuideState {
   h: Guide | null;
 }
 
+interface EdgeMenuState {
+  x: number;
+  y: number;
+  edgeId: string;
+}
+
+interface QuickCreateState {
+  nodeId: string;
+  x: number;
+  y: number;
+}
+
+interface WaypointDragState {
+  edgeId: string;
+  index: number;
+  startClient: { x: number; y: number };
+  startFlow: Point;
+}
+
+const QUICK_CREATE_KINDS: Array<ArchitectureNodeKind> = [
+  "class",
+  "interface",
+  "abstract",
+  "entity",
+  "controller",
+  "service",
+  "repository",
+  "component",
+  "actor",
+  "database",
+  "api",
+  "event",
+];
+
 function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
   const { fitView, screenToFlowPosition, zoomIn, zoomOut, setViewport, getViewport } = useReactFlow<UMLFlowNode, UMLFlowEdge>();
   const [flowNodes, setFlowNodes] = React.useState<UMLFlowNode[]>(engine.nodes);
@@ -190,6 +240,9 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
   const [pendingConnection, setPendingConnection] = React.useState<Connection | null>(null);
   const [guides, setGuides] = React.useState<GuideState>({ v: null, h: null });
   const [menu, setMenu] = React.useState<{ x: number; y: number; flow: XYPosition; target: "pane" } | null>(null);
+  const [edgeMenu, setEdgeMenu] = React.useState<EdgeMenuState | null>(null);
+  const [quickCreate, setQuickCreate] = React.useState<QuickCreateState | null>(null);
+  const [waypointDrag, setWaypointDrag] = React.useState<WaypointDragState | null>(null);
   const savedRef = React.useRef(loadSavedPositions(diagramId));
   const flowNodesRef = React.useRef(flowNodes);
   flowNodesRef.current = flowNodes;
@@ -207,13 +260,60 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
     const saved = savedRef.current;
     const positions = new Map(engine.nodes.map((n) => [n.id, saved[n.id] ?? n.position]));
     setFlowNodes(
-      engine.nodes.map((n) => ({ ...n, position: positions.get(n.id) ?? n.position, style: { ...n.style } }))
+      engine.nodes.map((n) => {
+        const arch = engine.architecture.nodes.find((a) => a.id === n.id);
+        const rels = engine.architecture.relationships;
+        const inDegree = rels.filter((r) => r.target === n.id).length;
+        const outDegree = rels.filter((r) => r.source === n.id).length;
+        const tone =
+          outDegree > 0 && inDegree > 0
+            ? "both"
+            : outDegree > 0
+              ? "out"
+              : inDegree > 0
+                ? "in"
+                : "none";
+        return {
+          ...n,
+          position: positions.get(n.id) ?? n.position,
+          style: { ...(n.style ?? {}), ...(arch?.style ?? {}) },
+          data: {
+            ...n.data,
+            style: arch?.style ?? null,
+            relationshipTone: tone,
+            onRenameNode: (name: string) => engine.updateNode(n.id, { name }),
+            onAddAttribute: () => {
+              const current = engine.architecture.nodes.find((a) => a.id === n.id);
+              engine.updateNode(n.id, {
+                attributes: [...(current?.attributes ?? []), defaultAttribute(`field${(current?.attributes.length ?? 0) + 1}`)],
+              });
+            },
+            onAddMethod: () => {
+              const current = engine.architecture.nodes.find((a) => a.id === n.id);
+              engine.updateNode(n.id, {
+                methods: [...(current?.methods ?? []), defaultMethod(`method${(current?.methods.length ?? 0) + 1}`)],
+              });
+            },
+          },
+        };
+      })
     );
     setFlowEdges(
-      engine.edges.map((e) => ({
-        ...e,
-        data: { ...(e.data as Record<string, unknown>), orthogonal: true },
-      }))
+      engine.edges.map((e) => {
+        const rel = engine.architecture.relationships.find((r) => r.id === e.id);
+        return {
+          ...e,
+          data: {
+            ...(e.data as Record<string, unknown>),
+            orthogonal: true,
+            sourceRole: rel?.sourceRole ?? null,
+            targetRole: rel?.targetRole ?? null,
+            waypoints: rel?.waypoints ?? [],
+            ...(rel?.style ?? {}),
+            onUpdateLabel: (label: string | null) => engine.updateRelationship(e.id, { label }),
+          },
+        };
+      })
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature]);
@@ -586,18 +686,88 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
     [commitPositions, selectedNodes]
   );
 
-  const autoLayout = React.useCallback(() => {
+  const layoutDirRef = React.useRef<"LR" | "TB">("LR");
+  React.useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("archvision-layout-direction");
+      if (saved === "LR" || saved === "TB") layoutDirRef.current = saved;
+    } catch {
+      /* localStorage unavailable */
+    }
+  }, []);
+
+  const autoLayout = React.useCallback((direction?: "LR" | "TB") => {
+    const dir = direction ?? layoutDirRef.current;
+    layoutDirRef.current = dir;
+    try {
+      window.localStorage.setItem("archvision-layout-direction", dir);
+    } catch {
+      /* localStorage unavailable */
+    }
     const sizes = new Map(
       flowNodesRef.current.map((n) => {
         const size = nodeSize(n);
         return [n.id, { id: n.id, width: size.w, height: size.h }];
       })
     );
-    const result = computeLayeredLayout(flowNodesRef.current, flowEdges, sizes);
+    const result = computeLayeredLayout(flowNodesRef.current, flowEdges, sizes, dir);
     commitPositions((nds) => nds.map((n) => result.nodes.find((r) => r.id === n.id)?.position ? { ...n, position: (result.nodes.find((r) => r.id === n.id) as { id: string; position: { x: number; y: number } }).position } : n));
     window.setTimeout(() => {
       void fitView({ padding: 0.2, duration: 500 });
     }, 80);
+  }, [commitPositions, fitView, flowEdges]);
+
+  /* ---------------- sequence participant reorder ---------------- */
+
+  const reorderParticipants = React.useCallback(() => {
+    const nodes = flowNodesRef.current;
+    if (nodes.length < 2) {
+      toast("error", "Need at least 2 participants to reorder");
+      return;
+    }
+    const ids = new Set(nodes.map((n) => n.id));
+    const edges = flowEdges.filter(
+      (e) => ids.has(e.source) && ids.has(e.target) && e.source !== e.target
+    );
+    const incoming = new Map<string, number>();
+    for (const id of ids) incoming.set(id, 0);
+    for (const e of edges) incoming.set(e.target, (incoming.get(e.target) ?? 0) + 1);
+
+    const order: string[] = [];
+    const placed = new Set<string>();
+    while (placed.size < ids.size) {
+      const ready = nodes
+        .map((n) => n.id)
+        .filter((id) => !placed.has(id) && (incoming.get(id) ?? 0) === 0);
+      if (ready.length === 0) {
+        const remaining = nodes.map((n) => n.id).find((id) => !placed.has(id));
+        if (remaining) order.push(remaining);
+        break;
+      }
+      for (const id of ready) {
+        order.push(id);
+        placed.add(id);
+        for (const e of edges) {
+          if (e.source === id) incoming.set(e.target, (incoming.get(e.target) ?? 1) - 1);
+        }
+      }
+    }
+    for (const n of nodes) {
+      if (!placed.has(n.id)) order.push(n.id);
+    }
+
+    const baseline = Math.min(...nodes.map((n) => n.position.y));
+    const gap = 280;
+    const targets = new Map<string, { x: number; y: number }>();
+    order.forEach((id, i) => targets.set(id, { x: i * gap, y: baseline }));
+
+    commitPositions((nds) =>
+      nds.map((n) => (targets.has(n.id) ? { ...n, position: targets.get(n.id) as { x: number; y: number } } : n))
+    );
+    window.setTimeout(() => {
+      void fitView({ padding: 0.2, duration: 500 });
+    }, 80);
+    toast("success", `Reordered ${order.length} participants by message flow`);
   }, [commitPositions, fitView, flowEdges]);
 
   /* ---------------- window events ---------------- */
@@ -624,7 +794,11 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
       const detail = (e as CustomEvent<{ axis: "horizontal" | "vertical" }>).detail;
       distribute(detail.axis);
     };
-    const autoLayoutListener = (): void => autoLayout();
+    const autoLayoutListener = (e: Event): void => {
+      const detail = (e as CustomEvent<{ direction?: "LR" | "TB" }>).detail;
+      autoLayout(detail?.direction);
+    };
+    const reorderListener = (): void => reorderParticipants();
     const deleteListener = (): void => {
       for (const edge of flowEdgesRef.current) {
         if (edge.selected) engine.removeRelationship(edge.id);
@@ -647,6 +821,7 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
     window.addEventListener("archvision:align", alignListener);
     window.addEventListener("archvision:distribute", distributeListener);
     window.addEventListener("archvision:auto-layout", autoLayoutListener);
+    window.addEventListener("archvision:reorder-participants", reorderListener);
     window.addEventListener("archvision:delete-selected", deleteListener);
     return () => {
       window.removeEventListener("archvision:zoom-in", zoomInListener);
@@ -662,9 +837,10 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
       window.removeEventListener("archvision:align", alignListener);
       window.removeEventListener("archvision:distribute", distributeListener);
       window.removeEventListener("archvision:auto-layout", autoLayoutListener);
+      window.removeEventListener("archvision:reorder-participants", reorderListener);
       window.removeEventListener("archvision:delete-selected", deleteListener);
     };
-  }, [zoomIn, zoomOut, setViewport, fitView, selectAll, duplicateSelected, copySelected, cutSelected, pasteClipboard, nudge, align, distribute, autoLayout, engine]);
+  }, [zoomIn, zoomOut, setViewport, fitView, selectAll, duplicateSelected, copySelected, cutSelected, pasteClipboard, nudge, align, distribute, autoLayout, reorderParticipants, engine]);
 
   /* ---------------- drag & drop & context menu ---------------- */
 
@@ -679,14 +855,17 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
       const raw = event.dataTransfer.getData("application/archvision-node");
       if (!raw) return;
       try {
-        const { kind } = JSON.parse(raw) as { kind: Parameters<DiagramEngine["addNode"]>[0] };
-        const id = engine.addNode(kind);
+        const payload = JSON.parse(raw) as {
+          kind: Parameters<DiagramEngine["addNode"]>[0];
+          name?: string;
+        };
+        const id = engine.addNode(payload.kind, payload.name ?? undefined);
         if (id) {
           const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
           savedRef.current[id] = position;
         }
       } catch {
-        /* malformed drop payload — ignore */
+        /* malformed drop payload â€” ignore */
       }
     },
     [engine, screenToFlowPosition]
@@ -699,6 +878,138 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
       setMenu({ x: event.clientX, y: event.clientY, flow, target: "pane" });
     },
     [screenToFlowPosition]
+  );
+
+  const onEdgeContextMenu = React.useCallback(
+    (event: React.MouseEvent | MouseEvent, edge: UMLFlowEdge) => {
+      event.preventDefault();
+      setMenu(null);
+      setEdgeMenu({ x: event.clientX, y: event.clientY, edgeId: edge.id });
+    },
+    []
+  );
+
+  const changeEdgeType = React.useCallback(
+    (edgeId: string, type: UmlRelationType) => {
+      engine.updateRelationship(edgeId, { type });
+      setEdgeMenu(null);
+    },
+    [engine]
+  );
+
+  /* ---------------- waypoint edge editing ---------------- */
+
+  const moveWaypoint = React.useCallback(
+    (edgeId: string, index: number, flow: Point): void => {
+      setFlowEdges((eds) =>
+        eds.map((e) =>
+          e.id === edgeId
+            ? {
+                ...e,
+                data: {
+                  ...(e.data as Record<string, unknown>),
+                  waypoints: (e.data as { waypoints?: Point[] }).waypoints?.map((w, i) =>
+                    i === index ? flow : w
+                  ),
+                },
+              }
+            : e
+        )
+      );
+    },
+    []
+  );
+
+  React.useEffect(() => {
+    if (!waypointDrag) return;
+    const onMove = (e: PointerEvent): void => {
+      const zoom = getViewport().zoom;
+      const dx = (e.clientX - waypointDrag.startClient.x) / zoom;
+      const dy = (e.clientY - waypointDrag.startClient.y) / zoom;
+      moveWaypoint(waypointDrag.edgeId, waypointDrag.index, {
+        x: waypointDrag.startFlow.x + dx,
+        y: waypointDrag.startFlow.y + dy,
+      });
+    };
+    const onUp = (): void => {
+      const edge = flowEdgesRef.current.find((f) => f.id === waypointDrag.edgeId);
+      const wps = (edge?.data as { waypoints?: Point[] })?.waypoints ?? [];
+      engine.updateRelationship(waypointDrag.edgeId, { waypoints: wps });
+      setWaypointDrag(null);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [waypointDrag, moveWaypoint, engine, getViewport]);
+
+  const insertWaypoint = React.useCallback(
+    (edgeId: string, at: Point) => {
+      const edge = flowEdgesRef.current.find((f) => f.id === edgeId);
+      const wps = [...((edge?.data as { waypoints?: Point[] })?.waypoints ?? []), at];
+      setFlowEdges((eds) =>
+        eds.map((e) =>
+          e.id === edgeId
+            ? { ...e, data: { ...(e.data as Record<string, unknown>), waypoints: wps } }
+            : e
+        )
+      );
+      engine.updateRelationship(edgeId, { waypoints: wps });
+    },
+    [engine]
+  );
+
+  const removeWaypoint = React.useCallback(
+    (edgeId: string, index: number) => {
+      const edge = flowEdgesRef.current.find((f) => f.id === edgeId);
+      const wps = ((edge?.data as { waypoints?: Point[] })?.waypoints ?? []).filter(
+        (_, i) => i !== index
+      );
+      setFlowEdges((eds) =>
+        eds.map((e) =>
+          e.id === edgeId
+            ? { ...e, data: { ...(e.data as Record<string, unknown>), waypoints: wps } }
+            : e
+        )
+      );
+      engine.updateRelationship(edgeId, { waypoints: wps });
+    },
+    [engine]
+  );
+
+  const waypointPathPoints = React.useCallback(
+    (edge: UMLFlowEdge): Point[] => {
+      const nodeById = new Map(flowNodesRef.current.map((n) => [n.id, n]));
+      const src = nodeById.get(edge.source);
+      const tgt = nodeById.get(edge.target);
+      if (!src || !tgt) return [];
+      const source: Point = { x: src.position.x + (src.measured?.width ?? 232) / 2, y: src.position.y + (src.measured?.height ?? 80) / 2 };
+      const target: Point = { x: tgt.position.x + (tgt.measured?.width ?? 232) / 2, y: tgt.position.y + (tgt.measured?.height ?? 80) / 2 };
+      const wps = (edge.data as { waypoints?: Point[] })?.waypoints ?? [];
+      return [source, ...wps, target];
+    },
+    []
+  );
+
+
+  const createConnected = React.useCallback(
+    (sourceId: string, kind: ArchitectureNodeKind) => {
+      const source = flowNodesRef.current.find((n) => n.id === sourceId);
+      const anchor = source?.position ?? { x: 0, y: 0 };
+      const offset = { x: anchor.x + (source ? nodeSize(source).w : 240) + 48, y: anchor.y };
+      const id = engine.addNode(kind, shapeByKind(kind)?.defaultName ?? KIND_LABELS[kind]);
+      if (!id) return;
+      savedRef.current[id] = offset;
+      savePositions(diagramId, { ...savedRef.current });
+      engine.addRelationship(sourceId, id, "association");
+      setQuickCreate(null);
+      window.setTimeout(() => {
+        void fitView({ padding: 0.3, duration: 400 });
+      }, 60);
+    },
+    [engine, diagramId, fitView]
   );
 
   const addCommentAt = React.useCallback(
@@ -717,7 +1028,7 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
     <React.Suspense
       fallback={
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-          Preparing canvas…
+          Preparing canvasâ€¦
         </div>
       }
     >
@@ -738,6 +1049,11 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
           onDragOver={onDragOver}
           onDrop={onDrop}
           onPaneContextMenu={onPaneContextMenu}
+          onPaneClick={() => {
+            setEdgeMenu(null);
+            setMenu(null);
+          }}
+          onEdgeContextMenu={onEdgeContextMenu}
           onNodeDrag={onNodeDrag}
           onNodeDragStop={onNodeDragStop}
           nodesConnectable
@@ -822,6 +1138,156 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
               />
             ) : null}
           </svg>
+        ) : null}
+
+        {(() => {
+          const selectedEdge = flowEdges.find((e) => e.id === engine.selectedEdgeId);
+          if (!selectedEdge) return null;
+          const pts = waypointPathPoints(selectedEdge);
+          if (pts.length < 2) return null;
+          return (
+            <>
+              {pts.slice(0, -1).map((a, i) => {
+                const b = pts[i + 1];
+                const mx = ((a.x + b.x) / 2) * viewport.zoom + viewport.x;
+                const my = ((a.y + b.y) / 2) * viewport.zoom + viewport.y;
+                return (
+                  <button
+                    key={`seg-${i}`}
+                    type="button"
+                    aria-label="Add bend point"
+                    title="Add bend point"
+                    onClick={() => insertWaypoint(selectedEdge.id, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 })}
+                    className="absolute z-40 flex h-4 w-4 items-center justify-center rounded-full border border-[#0052CC]/40 bg-white text-[10px] font-bold leading-none text-[#0052CC] opacity-40 transition-opacity hover:opacity-100"
+                    style={{ left: mx - 8, top: my - 8 }}
+                  >
+                    +
+                  </button>
+                );
+              })}
+              {pts.slice(1, -1).map((p, i) => {
+                const sx = p.x * viewport.zoom + viewport.x;
+                const sy = p.y * viewport.zoom + viewport.y;
+                const dragging = waypointDrag?.edgeId === selectedEdge.id && waypointDrag.index === i;
+                return (
+                  <div
+                    key={`wp-${i}`}
+                    role="button"
+                    aria-label={`Drag bend point ${i + 1}, double-click to remove`}
+                    title="Drag to reroute Â· double-click to remove"
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      setWaypointDrag({ edgeId: selectedEdge.id, index: i, startClient: { x: e.clientX, y: e.clientY }, startFlow: p });
+                    }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      removeWaypoint(selectedEdge.id, i);
+                    }}
+                    className={`absolute z-40 h-3 w-3 cursor-move rounded-full border-2 border-[#0052CC] bg-white shadow-sm transition-transform hover:scale-125 ${dragging ? "scale-125 bg-[#0052CC]/20" : ""}`}
+                    style={{ left: sx - 6, top: sy - 6 }}
+                  />
+                );
+              })}
+            </>
+          );
+        })()}
+
+        {flowNodes
+          .filter((n) => n.selected)
+          .map((n) => {
+            const size = nodeSize(n);
+            const bx = (n.position.x + size.w) * viewport.zoom + viewport.x;
+            const by = n.position.y * viewport.zoom + viewport.y;
+            return (
+              <button
+                key={`qc-${n.id}`}
+                type="button"
+                aria-label={`Add connected shape to ${n.data.label}`}
+                onClick={() => setQuickCreate({ nodeId: n.id, x: bx, y: by })}
+                className="absolute z-40 flex h-5 w-5 items-center justify-center rounded-full border border-primary/40 bg-white text-primary shadow-sm transition-transform hover:scale-110 hover:bg-primary/5"
+                style={{ left: bx - 10, top: by - 10 }}
+              >
+                <Plus className="h-3 w-3" />
+              </button>
+            );
+          })}
+
+        {quickCreate ? (
+          <div
+            className="absolute z-50 w-[228px] rounded-xl border border-line bg-white p-2 shadow-panel-float"
+            style={{ left: quickCreate.x, top: quickCreate.y }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <p className="px-1 pb-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+              Create & connect
+            </p>
+            <div className="grid grid-cols-2 gap-1">
+              {QUICK_CREATE_KINDS.map((kind) => {
+                const shape = shapeByKind(kind);
+                return (
+                  <button
+                    key={kind}
+                    type="button"
+                    onClick={() => createConnected(quickCreate.nodeId, kind)}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[11.5px] font-medium text-foreground transition-colors hover:bg-primary/5"
+                  >
+                    <span
+                      className="h-4 w-4 shrink-0"
+                      dangerouslySetInnerHTML={{ __html: shape?.thumbnail ?? "" }}
+                    />
+                    <span className="truncate">{shape?.label ?? kind}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {edgeMenu ? (
+          <div
+            className="absolute z-50 w-56 rounded-xl border border-line bg-white py-1 shadow-panel-float"
+            style={{ left: edgeMenu.x, top: edgeMenu.y }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+              Change type
+            </p>
+            {RELATION_GROUPS.map((group) => {
+              const types = RELATION_TYPE_ORDER.filter(
+                (t) => RELATION_SPECS_EXTENDED[t].group === group.id
+              );
+              if (types.length === 0) return null;
+              return (
+                <React.Fragment key={group.id}>
+                  <p className="px-3 pt-1.5 text-[10px] font-semibold text-slate-300">{group.label}</p>
+                  {types.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => changeEdgeType(edgeMenu.edgeId, type)}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] font-medium text-foreground hover:bg-surface"
+                    >
+                      <span className="w-16 shrink-0 font-mono text-[10.5px] text-primary">
+                        {RELATION_SPECS_EXTENDED[type].mermaid}
+                      </span>
+                      {RELATION_SPECS_EXTENDED[type].label}
+                    </button>
+                  ))}
+                </React.Fragment>
+              );
+            })}
+            <div className="my-1 h-px bg-line" />
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] font-medium text-red-600 hover:bg-red-50"
+              onClick={() => {
+                engine.removeRelationship(edgeMenu.edgeId);
+                setEdgeMenu(null);
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete relationship
+            </button>
+          </div>
         ) : null}
 
         {menu ? (

@@ -154,6 +154,276 @@ Week 2 : First ticket : Pair with mentor
 Week 3 : Deploy a service : On-call shadow
 Week 4 : Take full ownership`,
   },
+  {
+    id: "class-abstract-factory",
+    name: "Abstract Factory",
+    description: "Families of UI controls without concrete classes",
+    category: "uml",
+    icon: "◫",
+    build: () => `classDiagram
+    class UIFactory {
+      <<interface>>
+      +createButton() Button
+      +createInput() Input
+    }
+    class WindowsFactory {
+      +createButton() Button
+      +createInput() Input
+    }
+    class MacFactory {
+      +createButton() Button
+      +createInput() Input
+    }
+    class Button {
+      <<interface>>
+      +render() void
+    }
+    class WindowsButton {
+      +render() void
+    }
+    class MacButton {
+      +render() void
+    }
+    class App {
+      -factory: UIFactory
+      +init(factory) void
+    }
+    UIFactory <|-- WindowsFactory
+    UIFactory <|-- MacFactory
+    Button <|-- WindowsButton
+    Button <|-- MacButton
+    App --> UIFactory
+    WindowsFactory ..> WindowsButton : creates
+    MacFactory ..> MacButton : creates`,
+  },
+  {
+    id: "class-decorator",
+    name: "Decorator",
+    description: "Wrap notifications with logging, retry and encryption",
+    category: "uml",
+    icon: "◫",
+    build: () => `classDiagram
+    class Notifier {
+      <<interface>>
+      +send(message) void
+    }
+    class BaseNotifier {
+      +send(message) void
+    }
+    class NotifierDecorator {
+      #wrapped: Notifier
+    }
+    class LoggingDecorator {
+      +send(message) void
+    }
+    class RetryDecorator {
+      +send(message) void
+    }
+    class EncryptedDecorator {
+      +send(message) void
+    }
+    Notifier <|-- BaseNotifier
+    Notifier <|-- NotifierDecorator
+    NotifierDecorator o-- Notifier : wraps
+    NotifierDecorator <|-- LoggingDecorator
+    NotifierDecorator <|-- RetryDecorator
+    NotifierDecorator <|-- EncryptedDecorator`,
+  },
+  {
+    id: "class-adapter",
+    name: "Adapter",
+    description: "Make a legacy payment gateway match the new interface",
+    category: "uml",
+    icon: "◫",
+    build: () => `classDiagram
+    class PaymentGateway {
+      <<interface>>
+      +pay(amount) void
+      +refund(txnId) void
+    }
+    class StripeGateway {
+      +pay(amount) void
+      +refund(txnId) void
+    }
+    class LegacyPayProcessor {
+      +processUSD(amount) void
+      +reverseUSD(txnId) void
+    }
+    class LegacyAdapter {
+      -legacy: LegacyPayProcessor
+      +pay(amount) void
+      +refund(txnId) void
+    }
+    class Checkout {
+      -gateway: PaymentGateway
+      +checkout(cart) void
+    }
+    PaymentGateway <|-- StripeGateway
+    PaymentGateway <|-- LegacyAdapter
+    LegacyAdapter --> LegacyPayProcessor
+    Checkout --> PaymentGateway`,
+  },
+  {
+    id: "class-repository",
+    name: "Repository",
+    description: "Data access abstraction over SQL and cache",
+    category: "uml",
+    icon: "◫",
+    build: () => `classDiagram
+    class UserRepository {
+      <<interface>>
+      +findById(id) User
+      +save(user) void
+      +delete(id) void
+    }
+    class SqlUserRepository {
+      -db: Database
+      +findById(id) User
+      +save(user) void
+      +delete(id) void
+    }
+    class CachedUserRepository {
+      -inner: UserRepository
+      +findById(id) User
+      +save(user) void
+      +delete(id) void
+    }
+    class UserService {
+      -repo: UserRepository
+      +getUser(id) User
+      +register(user) void
+    }
+    UserRepository <|-- SqlUserRepository
+    UserRepository <|-- CachedUserRepository
+    CachedUserRepository o-- UserRepository : delegates
+    SqlUserRepository --> Database
+    UserService --> UserRepository`,
+  },
+  {
+    id: "class-singleton",
+    name: "Singleton",
+    description: "One global configuration object for the app",
+    category: "uml",
+    icon: "◫",
+    build: () => `classDiagram
+    class Config {
+      -static instance: Config
+      -settings: Map
+      -Config()
+      +static getInstance() Config
+      +get(key) string
+      +set(key, value) void
+    }
+    class AppServer {
+      -config: Config
+      +start() void
+    }
+    class Metrics {
+      -config: Config
+      +record(event) void
+    }
+    AppServer ..> Config : uses
+    Metrics ..> Config : uses`,
+  },
+  {
+    id: "class-strategy",
+    name: "Strategy",
+    description: "Swap pricing rules at runtime",
+    category: "uml",
+    icon: "◫",
+    build: () => `classDiagram
+    class PricingStrategy {
+      <<interface>>
+      +calculate(base) double
+    }
+    class FlatPricing {
+      +calculate(base) double
+    }
+    class TieredPricing {
+      +calculate(base) double
+    }
+    class SeasonalPricing {
+      +calculate(base) double
+    }
+    class Cart {
+      -strategy: PricingStrategy
+      +setStrategy(s) void
+      +total() double
+    }
+    PricingStrategy <|-- FlatPricing
+    PricingStrategy <|-- TieredPricing
+    PricingStrategy <|-- SeasonalPricing
+    Cart o-- PricingStrategy`,
+  },
+  {
+    id: "class-observer",
+    name: "Observer",
+    description: "Notify subscribers when stock changes",
+    category: "uml",
+    icon: "◫",
+    build: () => `classDiagram
+    class Subject {
+      <<interface>>
+      +attach(observer) void
+      +detach(observer) void
+      +notify() void
+    }
+    class Stock {
+      -observers: List
+      -price: double
+      +setPrice(price) void
+      +notify() void
+    }
+    class Observer {
+      <<interface>>
+      +update(symbol, price) void
+    }
+    class PriceChart {
+      +update(symbol, price) void
+    }
+    class AlertEmail {
+      +update(symbol, price) void
+    }
+    Subject <|-- Stock
+    Observer <|-- PriceChart
+    Observer <|-- AlertEmail
+    Stock o-- Observer : notifies`,
+  },
+  {
+    id: "class-state",
+    name: "State Pattern",
+    description: "Order moves between states, each handling its own behavior",
+    category: "uml",
+    icon: "◫",
+    build: () => `classDiagram
+    class Order {
+      -state: OrderState
+      +ship() void
+      +cancel() void
+      +setState(s) void
+    }
+    class OrderState {
+      <<interface>>
+      +ship(order) void
+      +cancel(order) void
+    }
+    class PendingState {
+      +ship(order) void
+      +cancel(order) void
+    }
+    class PaidState {
+      +ship(order) void
+      +cancel(order) void
+    }
+    class ShippedState {
+      +ship(order) void
+      +cancel(order) void
+    }
+    OrderState <|-- PendingState
+    OrderState <|-- PaidState
+    OrderState <|-- ShippedState
+    Order o-- OrderState : state`,
+  },
 ];
 
 export const TEMPLATE_CATEGORIES: EditorTemplate["category"][] = [

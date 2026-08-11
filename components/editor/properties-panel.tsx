@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Trash2, Plus } from "lucide-react";
 import type { ArchitectureRelationshipType, ArchitectureNodeKind, Visibility } from "@/types/diagram";
-import { RELATION_SPECS, VALID_MULTIPLICITIES } from "@/types/diagram";
+import { VALID_MULTIPLICITIES } from "@/types/diagram";
 import {
   defaultAttribute,
   defaultMethod,
@@ -14,6 +14,7 @@ import {
   type NodeEditPatch,
   type RelationshipEditPatch,
 } from "@/lib/architecture/editing";
+import { RELATION_SPECS_EXTENDED, RELATION_TYPE_ORDER } from "@/lib/editor/relations";
 import { cn } from "@/lib/utils";
 import type { DiagramEngine } from "@/hooks/useDiagram";
 
@@ -36,9 +37,52 @@ const NODE_KIND_OPTIONS: Array<{ value: ArchitectureNodeKind; label: string }> =
   "event",
 ].map((kind) => ({ value: kind as ArchitectureNodeKind, label: KIND_LABELS[kind as ArchitectureNodeKind] }));
 
-const RELATION_TYPE_OPTIONS = (
-  ["association", "dependency", "inheritance", "aggregation", "composition", "implementation"] as const
-).map((type) => ({ value: type, label: RELATION_SPECS[type].label }));
+const RELATION_TYPE_OPTIONS = RELATION_TYPE_ORDER.map((type) => ({
+  value: type,
+  label: RELATION_SPECS_EXTENDED[type].label,
+}));
+
+const FILL_SWATCHES = [
+  "#FFFFFF",
+  "#EFF6FF",
+  "#F0FDF4",
+  "#FFFBEB",
+  "#FDF2F8",
+  "#F8FAFC",
+  "#ECFEFF",
+  "#FEF2F2",
+  "#FAF5FF",
+];
+
+const BORDER_SWATCHES = [
+  "#5E6C84",
+  "#0052CC",
+  "#059669",
+  "#D97706",
+  "#DB2777",
+  "#475569",
+  "#0891B2",
+  "#DC2626",
+  "#7C3AED",
+];
+
+const EDGE_COLOR_SWATCHES = [
+  "#5E6C84",
+  "#0052CC",
+  "#059669",
+  "#D97706",
+  "#DB2777",
+  "#475569",
+  "#0891B2",
+  "#DC2626",
+  "#7C3AED",
+];
+
+const ROUTING_OPTIONS = [
+  { value: "orthogonal", label: "Orthogonal" },
+  { value: "curved", label: "Curved" },
+  { value: "straight", label: "Straight" },
+];
 
 function Select({
   value,
@@ -133,6 +177,67 @@ function NodeEditor({ engine }: { engine: DiagramEngine }): React.ReactElement |
           onChange={(v) => patch({ kind: v as ArchitectureNodeKind })}
           options={NODE_KIND_OPTIONS}
         />
+        <TextInput
+          ariaLabel="Stereotype"
+          value={node.stereotype ?? ""}
+          onChange={(v) => patch({ stereotype: v.trim() ? v : null })}
+          placeholder="Stereotype (e.g. entity, service)"
+        />
+      </div>
+
+      <SectionLabel>Style</SectionLabel>
+      <div className="space-y-2">
+        <div>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Fill</p>
+          <div className="flex flex-wrap gap-1.5">
+            {FILL_SWATCHES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-label={`Fill ${c}`}
+                onClick={() => patch({ style: { ...node.style, fill: c === "#FFFFFF" ? undefined : c } })}
+                className={cn(
+                  "h-6 w-6 rounded-md border border-line transition-transform hover:scale-110",
+                  node.style?.fill === c && "ring-2 ring-primary/50"
+                )}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Border</p>
+          <div className="flex flex-wrap gap-1.5">
+            {BORDER_SWATCHES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-label={`Border ${c}`}
+                onClick={() => patch({ style: { ...node.style, border: c === "#5E6C84" ? undefined : c } })}
+                className={cn(
+                  "h-6 w-6 rounded-md border border-line transition-transform hover:scale-110",
+                  node.style?.border === c && "ring-2 ring-primary/50"
+                )}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Font size</p>
+          <select
+            aria-label="Font size"
+            value={node.style?.fontSize ?? 13}
+            onChange={(e) => patch({ style: { ...node.style, fontSize: Number(e.target.value) } })}
+            className="h-8 w-full rounded-lg border border-line bg-white px-2 text-[12px] font-medium text-foreground outline-none transition-colors focus:border-primary/60"
+          >
+            {[12, 13, 14, 15, 16].map((s) => (
+              <option key={s} value={s}>
+                {s}px
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="mt-2 flex gap-2">
@@ -327,6 +432,85 @@ function EdgeEditor({ engine }: { engine: DiagramEngine }): React.ReactElement |
         placeholder="e.g. owns, depends, has"
       />
 
+      <SectionLabel>Role names</SectionLabel>
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Source</p>
+          <TextInput
+            ariaLabel="Source role"
+            value={edge.sourceRole ?? ""}
+            onChange={(v) => patch({ sourceRole: v.trim() ? v : null })}
+            placeholder="e.g. owner"
+          />
+        </div>
+        <div className="flex-1">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Target</p>
+          <TextInput
+            ariaLabel="Target role"
+            value={edge.targetRole ?? ""}
+            onChange={(v) => patch({ targetRole: v.trim() ? v : null })}
+            placeholder="e.g. owned"
+          />
+        </div>
+      </div>
+
+      <SectionLabel>Line style</SectionLabel>
+      <div className="space-y-2">
+        <div>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Color</p>
+          <div className="flex flex-wrap gap-1.5">
+            {EDGE_COLOR_SWATCHES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-label={`Edge color ${c}`}
+                onClick={() => patch({ style: { ...edge.style, color: c === "#5E6C84" ? undefined : c } })}
+                className={cn(
+                  "h-6 w-6 rounded-md border border-line transition-transform hover:scale-110",
+                  (edge.style?.color ?? "#5E6C84") === c && "ring-2 ring-primary/50"
+                )}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Width</p>
+            <select
+              aria-label="Edge width"
+              value={edge.style?.width ?? 1.5}
+              onChange={(e) => patch({ style: { ...edge.style, width: Number(e.target.value) } })}
+              className="h-8 w-full rounded-lg border border-line bg-white px-2 text-[12px] font-medium text-foreground outline-none transition-colors focus:border-primary/60"
+            >
+              {[1, 1.5, 2, 2.5, 3, 4].map((w) => (
+                <option key={w} value={w}>
+                  {w}px
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Routing</p>
+            <Select
+              ariaLabel="Edge routing"
+              value={edge.style?.routing ?? "orthogonal"}
+              onChange={(v) => patch({ style: { ...edge.style, routing: v as "orthogonal" | "straight" | "curved" } })}
+              options={ROUTING_OPTIONS}
+            />
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-[11.5px] font-medium text-foreground">
+          <input
+            type="checkbox"
+            checked={edge.style?.dash === "5 5"}
+            onChange={(e) => patch({ style: { ...edge.style, dash: e.target.checked ? "5 5" : undefined } })}
+            className="h-3.5 w-3.5 accent-primary"
+          />
+          Dashed line
+        </label>
+      </div>
+
       <SectionLabel>Multiplicities</SectionLabel>
       <div className="flex gap-2">
         <div className="flex-1">
@@ -351,7 +535,7 @@ function EdgeEditor({ engine }: { engine: DiagramEngine }): React.ReactElement |
 
       <p className="mt-3 border-t border-line pt-2 text-[11px] leading-relaxed text-slate-400">
         Saved as Mermaid: {edge.source} {edge.sourceMultiplicity !== "1" ? `"${edge.sourceMultiplicity}" ` : ""}
-        {RELATION_SPECS[edge.type as keyof typeof RELATION_SPECS]?.mermaid ?? "-->"}
+        {RELATION_SPECS_EXTENDED[edge.type]?.mermaid ?? "-->"}
         {edge.targetMultiplicity !== "1" ? ` "${edge.targetMultiplicity}"` : ""}
         {edge.label ? ` : ${edge.label}` : ""}
       </p>

@@ -45,10 +45,12 @@ function parseChunk(buffer: string): { events: Array<{ event?: string; data?: st
 export function useAIChat(): {
   streaming: boolean;
   error: string | null;
+  fallback: boolean;
   stream: (request: AIChatRequest, callbacks: StreamCallbacks) => Promise<string>;
 } {
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fallback, setFallback] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const stream = useCallback(async (request: AIChatRequest, callbacks: StreamCallbacks): Promise<string> => {
@@ -57,6 +59,7 @@ export function useAIChat(): {
     abortRef.current = controller;
     setStreaming(true);
     setError(null);
+    setFallback(false);
 
     const { onDelta, onDone, onError } = callbacks;
     let full = "";
@@ -94,6 +97,14 @@ export function useAIChat(): {
           if (event.event === "error") {
             throw new Error(event.data || "Stream error");
           }
+          if (event.event === "meta" && event.data) {
+            try {
+              const meta = JSON.parse(event.data) as { fallback?: boolean; message?: string };
+              if (meta.fallback) setFallback(true);
+            } catch {
+              /* ignore malformed meta */
+            }
+          }
           if (event.event === "delta" && event.data) {
             full += event.data;
             onDelta(event.data);
@@ -118,5 +129,5 @@ export function useAIChat(): {
     }
   }, []);
 
-  return { streaming, error, stream };
+  return { streaming, error, fallback, stream };
 }

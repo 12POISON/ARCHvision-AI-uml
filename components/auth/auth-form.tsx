@@ -62,6 +62,7 @@ export function AuthForm({ mode, hasGithub = false, hasGoogle = false }: AuthFor
     setLoading("local");
     setError(null);
     try {
+      toast("info", "Email sign-in isn't configured in this demo — continuing with demo access.");
       const result = await signIn("demo", { redirect: false });
       if (result?.error) {
         setError("Invalid credentials. Use demo access instead.");

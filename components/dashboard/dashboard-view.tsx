@@ -9,10 +9,8 @@ import { StatsBar } from "@/components/dashboard/stats-bar";
 import { NewDiagramModal } from "@/components/dashboard/new-diagram-modal";
 import { NewProjectModal } from "@/components/dashboard/new-project-modal";
 import { NewProjectCard } from "@/components/dashboard/project-card";
+import { DiagramCard } from "@/components/dashboard/diagram-card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { formatRelativeTime } from "@/lib/utils";
-import { DIAGRAM_TYPES } from "@/types/diagram";
 import type { Diagram, Project } from "@/types/diagram";
 
 interface DashboardViewProps {
@@ -154,28 +152,8 @@ export function DashboardView({ user, projects, diagrams }: DashboardViewProps):
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {recentDiagrams.map((diagram) => (
-            <motion.div
-              key={diagram.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <Link
-                href={`/editor/${diagram.id}`}
-                className="group flex h-full flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-primary"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="min-w-0 truncate text-sm font-bold text-foreground">{diagram.name}</span>
-                  <Badge variant="soft-blue" className="shrink-0">
-                    {DIAGRAM_TYPES.find((t) => t.value === diagram.type)?.label ?? diagram.type}
-                  </Badge>
-                </div>
-                <p className="mt-auto pt-3 text-[11px] text-muted-foreground/80">
-                  Updated {formatRelativeTime(diagram.updatedAt)}
-                </p>
-              </Link>
-            </motion.div>
+          {recentDiagrams.map((diagram, index) => (
+            <DiagramCard key={diagram.id} diagram={diagram} index={index} />
           ))}
         </div>
       )}

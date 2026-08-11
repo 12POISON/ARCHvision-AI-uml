@@ -38,6 +38,10 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   );
 }
 
+if (process.env.NODE_ENV === "production" && !process.env.NEXTAUTH_SECRET) {
+  throw new Error("NEXTAUTH_SECRET must be set in production. Generate one with: openssl rand -base64 32");
+}
+
 export const authConfig: NextAuthConfig = {
   providers,
   session: {
@@ -70,7 +74,7 @@ export const authConfig: NextAuthConfig = {
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET ?? "archvision-dev-secret-change-me",
+  secret: process.env.NEXTAUTH_SECRET,
   trustHost: true,
 };
 

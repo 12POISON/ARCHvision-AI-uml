@@ -116,6 +116,7 @@ export function ShareModal({ open, onOpenChange, diagramId, diagramName }: Share
               if (e.key === "Enter") sendInvite();
             }}
             placeholder="email@company.com"
+            aria-label="Collaborator email"
             className="min-w-0 flex-1 rounded-xl border border-line bg-white px-3 py-2 text-[12.5px] text-foreground outline-none transition-colors focus:border-primary/50"
           />
           <Button variant="outline" onClick={sendInvite} className="gap-1.5">

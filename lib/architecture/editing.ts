@@ -28,6 +28,13 @@ export interface NodeEditPatch {
   isInterface?: boolean;
   attributes?: ArchitectureAttribute[];
   methods?: ArchitectureMethod[];
+  style?: {
+    fill?: string;
+    border?: string;
+    fontSize?: number;
+    width?: number;
+    height?: number;
+  };
 }
 
 export interface RelationshipEditPatch {
@@ -36,6 +43,15 @@ export interface RelationshipEditPatch {
   sourceMultiplicity?: string;
   targetMultiplicity?: string;
   action?: string | null;
+  sourceRole?: string | null;
+  targetRole?: string | null;
+  style?: {
+    color?: string;
+    width?: number;
+    dash?: string;
+    routing?: "orthogonal" | "straight" | "curved";
+  };
+  waypoints?: Array<{ x: number; y: number }>;
 }
 
 const NODE_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -63,9 +79,49 @@ function nodeFromKind(name: string, kind: ArchitectureNodeKind): ArchitectureNod
     node.isAbstract = true;
   } else if (kind === "entity" || kind === "table") {
     node.stereotype = kind === "table" ? "table" : "entity";
+  } else if (UML_SHAPE_STEREOTYPE_KINDS.has(kind)) {
+    // UML shape-library kinds round-trip through Mermaid via their stereotype.
+    node.stereotype = kind;
   }
   return node;
 }
+
+const UML_SHAPE_STEREOTYPE_KINDS = new Set<ArchitectureNodeKind>([
+  "usecase",
+  "note",
+  "constraint",
+  "lifeline",
+  "start",
+  "end",
+  "decision",
+  "activity",
+  "fork",
+  "initial",
+  "final",
+  "swimlane",
+  "node",
+  "artifact",
+  "port",
+  "weak-entity",
+  "attribute",
+  "derived-attribute",
+  "relationship",
+  "weak-relationship",
+  "cloud",
+  "parallelogram",
+  "document",
+  "circle",
+  "diamond",
+  "rect",
+  "rounded-rect",
+  "activation",
+  "fragment",
+  "destroy",
+  "message",
+  "return-message",
+  "self-message",
+  "transition",
+]);
 
 /** Add a node. Returns the new node (id === name). */
 export function addArchitectureNode(arch: Architecture, kind: ArchitectureNodeKind, baseName?: string): { arch: Architecture; node: ArchitectureNode } {
@@ -90,6 +146,62 @@ function kindName(kind: ArchitectureNodeKind): string {
       return "NewRepository";
     case "entity":
       return "NewEntity";
+    case "usecase":
+      return "NewUseCase";
+    case "note":
+      return "Note";
+    case "constraint":
+      return "{ constraint }";
+    case "lifeline":
+      return "NewLifeline";
+    case "activity":
+      return "NewActivity";
+    case "swimlane":
+      return "NewSwimlane";
+    case "node":
+      return "NewNode";
+    case "artifact":
+      return "artifact.jar";
+    case "port":
+      return "port";
+    case "weak-entity":
+      return "NewWeakEntity";
+    case "attribute":
+      return "NewAttribute";
+    case "derived-attribute":
+      return "NewDerived";
+    case "relationship":
+      return "Relationship";
+    case "weak-relationship":
+      return "WeakRelationship";
+    case "cloud":
+      return "Cloud";
+    case "parallelogram":
+      return "Action";
+    case "document":
+      return "Document";
+    case "circle":
+      return "Circle";
+    case "diamond":
+      return "Decision";
+    case "rect":
+      return "Rectangle";
+    case "rounded-rect":
+      return "Process";
+    case "activation":
+      return "Activation";
+    case "fragment":
+      return "Fragment";
+    case "destroy":
+      return "Destroy";
+    case "message":
+      return "Message";
+    case "return-message":
+      return "ReturnMessage";
+    case "self-message":
+      return "SelfMessage";
+    case "transition":
+      return "Transition";
     default:
       return "NewClass";
   }
@@ -123,14 +235,25 @@ export function updateArchitectureNode(arch: Architecture, id: string, patch: No
       next.stereotype = "abstract";
     } else if (patch.kind === "entity" || patch.kind === "table") {
       next.stereotype = patch.kind === "table" ? "table" : "entity";
+    } else if (UML_SHAPE_STEREOTYPE_KINDS.has(patch.kind)) {
+      next.stereotype = patch.kind;
+      next.isAbstract = false;
+      next.isInterface = false;
     } else {
       next.isAbstract = false;
       next.isInterface = false;
-      if (next.stereotype === "interface" || next.stereotype === "abstract") next.stereotype = null;
+      if (
+        next.stereotype === "interface" ||
+        next.stereotype === "abstract" ||
+        UML_SHAPE_STEREOTYPE_KINDS.has(next.stereotype as ArchitectureNodeKind)
+      ) {
+        next.stereotype = null;
+      }
     }
   }
   if (patch.attributes !== undefined) next.attributes = patch.attributes;
   if (patch.methods !== undefined) next.methods = patch.methods;
+  if (patch.style !== undefined) next.style = patch.style;
 
   const nodes = arch.nodes.map((n) => (n.id === id ? next : n));
   const relationships =
@@ -244,6 +367,40 @@ export const KIND_LABELS: Record<ArchitectureNodeKind, string> = {
   api: "API",
   event: "Event",
   state: "State",
+  usecase: "Use Case",
+  note: "Note",
+  constraint: "Constraint",
+  lifeline: "Lifeline",
+  start: "Start",
+  end: "End",
+  decision: "Decision",
+  activity: "Activity",
+  fork: "Fork/Join",
+  initial: "Initial State",
+  final: "Final State",
+  swimlane: "Swimlane",
+  node: "Node",
+  artifact: "Artifact",
+  port: "Port",
+  "weak-entity": "Weak Entity",
+  attribute: "Attribute",
+  "derived-attribute": "Derived Attribute",
+  relationship: "Relationship",
+  "weak-relationship": "Weak Relationship",
+  cloud: "Cloud",
+  parallelogram: "Parallelogram",
+  document: "Document",
+  circle: "Circle",
+  diamond: "Diamond",
+  rect: "Rectangle",
+  "rounded-rect": "Rounded Rectangle",
+  activation: "Activation",
+  fragment: "Fragment",
+  destroy: "Destroy",
+  message: "Message",
+  "return-message": "Return Message",
+  "self-message": "Self Message",
+  transition: "Transition",
 };
 
 export const PALETTE_KINDS: Array<{ kind: ArchitectureNodeKind; label: string }> = [

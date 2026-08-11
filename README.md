@@ -45,7 +45,9 @@ ANTHROPIC_API_KEY=sk-ant-...
 # OAuth (buttons appear automatically once set)
 GITHUB_CLIENT_ID=...    GITHUB_CLIENT_SECRET=...
 GOOGLE_CLIENT_ID=...    GOOGLE_CLIENT_SECRET=...
-NEXTAUTH_SECRET=...     NEXTAUTH_URL=http://localhost:3000
+
+# Required in production — the app refuses to start without it (dev auto-generates)
+NEXTAUTH_SECRET=$(openssl rand -base64 32)
 ```
 
 ## 🐳 Docker

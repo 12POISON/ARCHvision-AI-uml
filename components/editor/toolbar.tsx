@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import {
   AlignCenter,
   AlignHorizontalDistributeCenter,
@@ -12,8 +11,10 @@ import {
   AlignEndHorizontal,
   AlignEndVertical,
   AlignStartVertical,
-  ArrowLeft,
+  ArrowLeftRight,
+  Bot,
   ChevronDown,
+  ChevronLeft,
   Clipboard,
   Code2,
   Copy,
@@ -22,10 +23,11 @@ import {
   FileText,
   FileUp,
   History,
-  LayoutGrid,
   Maximize,
   MessageSquare,
   Minus,
+  MoveDown,
+  MoveRight,
   Plus,
   Printer,
   Redo2,
@@ -37,7 +39,6 @@ import {
   Sparkles,
   Trash2,
   Undo2,
-  Wand2,
   ZoomIn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -117,155 +118,171 @@ export function Toolbar({
     { id: "plantuml", label: "PlantUML", hint: "Source code export" },
     { id: "mermaid", label: "Mermaid (.mmd)", hint: "Portable source" },
     { id: "json", label: "JSON model", hint: "Machine-readable AST" },
+    { id: "xmi", label: "XMI (UML 2.5)", hint: "StarUML / Papyrus interchange" },
+    { id: "sql", label: "SQL (DDL)", hint: "Tables + foreign keys" },
   ];
 
   const menuTrigger = (label: string, open: boolean): React.ReactNode => (
-    <span className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-foreground rounded-btn2">
+    <span className="flex items-center gap-1 px-2 py-1 text-[13px] font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded">
       {label}
-      <ChevronDown className={cn("h-3 w-3 text-slate-400 transition-transform", open && "rotate-180")} />
+      <ChevronDown className={cn("h-3 w-3 text-gray-400 transition-transform", open && "rotate-180")} />
     </span>
   );
 
+  const iconAction = (label: string, onClick: () => void, icon: React.ReactNode, active = false): React.ReactNode => (
+    <Tooltip key={label}>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClick}
+          aria-label={label}
+          className={cn("h-8 w-8 rounded-md", active && "border border-primary/30 bg-primary/5 text-primary")}
+        >
+          {icon}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-      className="glass flex items-center gap-2 border-b border-line px-4 py-2.5"
-    >
-      <button
-        type="button"
-        onClick={() => router.push("/dashboard")}
-        className="flex h-8 w-8 items-center justify-center rounded-btn2 text-slate-500 transition-colors duration-200 hover:bg-slate-100 hover:text-foreground"
-        aria-label="Back to dashboard"
-      >
-        <ArrowLeft className="h-4 w-4" />
-      </button>
-
-      <div className="flex min-w-0 items-center gap-2.5">
-        <h1 className="truncate text-[14.5px] font-bold tracking-tight text-foreground">{diagramName}</h1>
-        <Badge variant="soft-blue">{diagramType.toLowerCase()} diagram</Badge>
+    <div className="flex h-12 select-none items-center justify-between border-b border-gray-200 bg-white px-4">
+      {/* LEFT ZONE — back, diagram identity, File/Edit/View/Arrange */}
+      <div className="flex min-w-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={() => router.push("/dashboard")}
+          aria-label="Back to dashboard"
+          className="rounded p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <div className="h-6 w-px bg-gray-200" />
+        <span className="max-w-[180px] truncate text-[13.5px] font-semibold text-gray-900" title={diagramName}>
+          {diagramName}
+        </span>
+        <Badge variant="soft-blue" className="shrink-0 text-xs font-medium">
+          {diagramType.toLowerCase()} diagram
+        </Badge>
         {validationScore !== null ? (
-          <Badge variant={isValid ? "success" : "warning"}>{validationScore}/100</Badge>
+          <Badge variant={isValid ? "success" : "warning"} className="shrink-0">
+            {validationScore}/100
+          </Badge>
         ) : null}
-      </div>
+        <div className="h-6 w-px bg-gray-200" />
 
-      <div className="mx-auto hidden items-center gap-0.5 lg:flex">
         <DropdownMenu open={fileOpen} onOpenChange={setFileOpen}>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="rounded-btn2 hover:bg-surface" aria-label="File menu">
+            <button type="button" className="rounded hover:bg-gray-50" aria-label="File menu">
               {menuTrigger("File", fileOpen)}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
             <DropdownMenuItem onClick={() => router.push("/dashboard?new=1")}>
-              <Plus className="h-3.5 w-3.5 text-slate-400" /> New diagram
+              <Plus className="h-3.5 w-3.5 text-gray-400" /> New Diagram
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setImportOpen(true)}>
-              <FileUp className="h-3.5 w-3.5 text-slate-400" /> Import…
+              <FileUp className="h-3.5 w-3.5 text-gray-400" /> Open… (Import)
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel>Export</DropdownMenuLabel>
-            {exportFormats.map((format) => (
-              <DropdownMenuItem key={format.id} onClick={() => onExport(format.id)}>
-                <Download className="h-3.5 w-3.5 text-slate-400" />
-                <span className="flex w-full items-center justify-between">
-                  <span className="font-medium">{format.label}</span>
-                  <span className="text-xs text-muted-foreground">{format.hint}</span>
-                </span>
-              </DropdownMenuItem>
-            ))}
+            <DropdownMenuItem onClick={() => onExport("mermaid")}>
+              <Download className="h-3.5 w-3.5 text-gray-400" /> Save (.mmd)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onExport("json")}>
+              <FileText className="h-3.5 w-3.5 text-gray-400" /> Save As… (JSON model)
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShareOpen(true)}>
-              <Share2 className="h-3.5 w-3.5 text-slate-400" /> Share…
+              <Share2 className="h-3.5 w-3.5 text-gray-400" /> Share…
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => window.print()}>
-              <Printer className="h-3.5 w-3.5 text-slate-400" /> Print
+              <Printer className="h-3.5 w-3.5 text-gray-400" /> Print
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
         <DropdownMenu open={editOpen} onOpenChange={setEditOpen}>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="rounded-btn2 hover:bg-surface" aria-label="Edit menu">
+            <button type="button" className="rounded hover:bg-gray-50" aria-label="Edit menu">
               {menuTrigger("Edit", editOpen)}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-52">
             <DropdownMenuItem disabled={!engine.canUndo} onClick={() => engine.undo()}>
-              <Undo2 className="h-3.5 w-3.5 text-slate-400" /> Undo
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl Z</span>
+              <Undo2 className="h-3.5 w-3.5 text-gray-400" /> Undo
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl Z</span>
             </DropdownMenuItem>
             <DropdownMenuItem disabled={!engine.canRedo} onClick={() => engine.redo()}>
-              <Redo2 className="h-3.5 w-3.5 text-slate-400" /> Redo
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl Shift Z</span>
+              <Redo2 className="h-3.5 w-3.5 text-gray-400" /> Redo
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl Shift Z</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => dispatch("archvision:duplicate-selected")}>
-              <Copy className="h-3.5 w-3.5 text-slate-400" /> Duplicate
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl D</span>
+              <Copy className="h-3.5 w-3.5 text-gray-400" /> Duplicate
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl D</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => dispatch("archvision:copy-selected")}>
-              <Clipboard className="h-3.5 w-3.5 text-slate-400" /> Copy
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl C</span>
+              <Clipboard className="h-3.5 w-3.5 text-gray-400" /> Copy
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl C</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => dispatch("archvision:cut-selected")}>
-              <Scissors className="h-3.5 w-3.5 text-slate-400" /> Cut
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl X</span>
+              <Scissors className="h-3.5 w-3.5 text-gray-400" /> Cut
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl X</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => dispatch("archvision:paste")}>
-              <Clipboard className="h-3.5 w-3.5 text-slate-400" /> Paste
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl V</span>
+              <Clipboard className="h-3.5 w-3.5 text-gray-400" /> Paste
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl V</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => dispatch("archvision:select-all")}>
-              <Maximize className="h-3.5 w-3.5 text-slate-400" /> Select all
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl A</span>
+              <Maximize className="h-3.5 w-3.5 text-gray-400" /> Select all
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl A</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => dispatch("archvision:delete-selected")}>
-              <Trash2 className="h-3.5 w-3.5 text-slate-400" /> Delete
-              <span className="ml-auto text-[10px] text-muted-foreground">Del</span>
+              <Trash2 className="h-3.5 w-3.5 text-gray-400" /> Delete
+              <span className="ml-auto text-[10px] text-gray-400">Del</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
         <DropdownMenu open={viewOpen} onOpenChange={setViewOpen}>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="rounded-btn2 hover:bg-surface" aria-label="View menu">
+            <button type="button" className="rounded hover:bg-gray-50" aria-label="View menu">
               {menuTrigger("View", viewOpen)}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-52">
             <DropdownMenuItem onClick={() => dispatch("archvision:fit-view")}>
-              <Maximize className="h-3.5 w-3.5 text-slate-400" /> Fit to screen
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl F</span>
+              <Maximize className="h-3.5 w-3.5 text-gray-400" /> Fit to screen
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl F</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => dispatch("archvision:zoom-in")}>
-              <ZoomIn className="h-3.5 w-3.5 text-slate-400" /> Zoom in
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl +</span>
+              <ZoomIn className="h-3.5 w-3.5 text-gray-400" /> Zoom in
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl +</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => dispatch("archvision:zoom-out")}>
-              <Minus className="h-3.5 w-3.5 text-slate-400" /> Zoom out
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl -</span>
+              <Minus className="h-3.5 w-3.5 text-gray-400" /> Zoom out
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl -</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => dispatch("archvision:zoom-reset")}>
-              <RotateCcw className="h-3.5 w-3.5 text-slate-400" /> Reset zoom
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl 0</span>
+              <RotateCcw className="h-3.5 w-3.5 text-gray-400" /> Reset zoom
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl 0</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onToggleCodePanel}>
-              <Code2 className="h-3.5 w-3.5 text-slate-400" /> Toggle code panel
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl E</span>
+              <Code2 className="h-3.5 w-3.5 text-gray-400" /> Toggle code panel
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl E</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setCheatSheetOpen(true)}>
-              <Sparkles className="h-3.5 w-3.5 text-slate-400" /> Shortcuts
-              <span className="ml-auto text-[10px] text-muted-foreground">Ctrl ?</span>
+              <Sparkles className="h-3.5 w-3.5 text-gray-400" /> Shortcuts
+              <span className="ml-auto text-[10px] text-gray-400">Ctrl ?</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
         <DropdownMenu open={arrangeOpen} onOpenChange={setArrangeOpen}>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="rounded-btn2 hover:bg-surface" aria-label="Arrange menu">
+            <button type="button" className="rounded hover:bg-gray-50" aria-label="Arrange menu">
               {menuTrigger("Arrange", arrangeOpen)}
             </button>
           </DropdownMenuTrigger>
@@ -279,169 +296,110 @@ export function Toolbar({
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Distribute</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => dispatch("archvision:distribute", { axis: "horizontal" })}>
-              <AlignHorizontalDistributeCenter className="h-3.5 w-3.5 text-slate-400" /> Evenly (horizontal)
+              <AlignHorizontalDistributeCenter className="h-3.5 w-3.5 text-gray-400" /> Evenly (horizontal)
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => dispatch("archvision:distribute", { axis: "vertical" })}>
-              <AlignVerticalDistributeCenter className="h-3.5 w-3.5 text-slate-400" /> Evenly (vertical)
+              <AlignVerticalDistributeCenter className="h-3.5 w-3.5 text-gray-400" /> Evenly (vertical)
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => dispatch("archvision:auto-layout")}>
-              <LayoutGrid className="h-3.5 w-3.5 text-slate-400" /> Auto layout
+            <DropdownMenuLabel>Auto Layout</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => dispatch("archvision:auto-layout", { direction: "LR" })}>
+              <MoveRight className="h-3.5 w-3.5 text-gray-400" /> Left → Right
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => dispatch("archvision:auto-layout", { direction: "TB" })}>
+              <MoveDown className="h-3.5 w-3.5 text-gray-400" /> Top → Bottom
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => dispatch("archvision:reorder-participants")}>
+              <ArrowLeftRight className="h-3.5 w-3.5 text-gray-400" /> Reorder Participants (by message flow)
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      <div className="mx-auto hidden items-center gap-1.5 rounded-pill border border-line bg-white p-1 lg:flex">
-        <span className="px-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">View</span>
-        {(["EXECUTIVE", "ENGINEERING"] as const).map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            onClick={() => onViewModeChange(mode)}
-            className={cn(
-              "rounded-pill px-3.5 py-1.5 text-[12px] font-semibold transition-all duration-300",
-              viewMode === mode ? "bg-primary text-white shadow-btn-primary" : "text-slate-500 hover:text-foreground"
-            )}
-            aria-pressed={viewMode === mode}
-          >
-            {mode === "EXECUTIVE" ? "Executive" : "Engineering"}
-          </button>
-        ))}
-      </div>
-
-      <div className="ml-auto flex items-center gap-1.5 lg:ml-0">
+      {/* CENTER ZONE — undo/redo + view mode */}
+      <div className="flex items-center gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" onClick={() => engine.undo()} disabled={!engine.canUndo} aria-label="Undo">
+            <Button variant="ghost" size="sm" onClick={() => engine.undo()} disabled={!engine.canUndo} aria-label="Undo">
               <Undo2 className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Undo (Ctrl Z)</TooltipContent>
         </Tooltip>
-
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" onClick={() => engine.redo()} disabled={!engine.canRedo} aria-label="Redo">
+            <Button variant="ghost" size="sm" onClick={() => engine.redo()} disabled={!engine.canRedo} aria-label="Redo">
               <Redo2 className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Redo (Ctrl Shift Z)</TooltipContent>
         </Tooltip>
+        <div className="mx-1 h-6 w-px bg-gray-200" />
+        <div className="flex items-center gap-0.5 rounded-md border border-gray-200 bg-gray-50 p-0.5">
+          {(["EXECUTIVE", "ENGINEERING"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => onViewModeChange(mode)}
+              className={cn(
+                "rounded px-2.5 py-1 text-[11.5px] font-medium transition-colors",
+                viewMode === mode ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              )}
+              aria-pressed={viewMode === mode}
+            >
+              {mode === "EXECUTIVE" ? "Executive" : "Engineering"}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" onClick={onToggleCodePanel} aria-label="Toggle code panel" className={cn(codePanelOpen && "border-primary/40 bg-primary/5 text-primary")}>
-              <Code2 className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Toggle code panel</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" onClick={() => setSidePanel("validation")} aria-label="Open validation panel">
-              <ShieldCheck className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>UML validation</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" onClick={() => setAnalysisOpen(true)} aria-label="Run architecture analysis">
-              <ScanSearch className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Architecture analysis</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" onClick={() => setCodeGenOpen(true)} aria-label="Generate source code">
-              <FileCode2 className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Generate code</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" onClick={() => setDocsOpen(true)} aria-label="Generate documentation">
-              <FileText className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Design docs</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" onClick={() => setVersionOpen(true)} aria-label="Open version history">
-              <History className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Version history</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" onClick={() => setShareOpen(true)} aria-label="Share diagram">
-              <Share2 className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Share</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" onClick={() => useEditorUI.getState().setCommentsOpen(true)} aria-label="Open comments" className="relative">
-              <MessageSquare className="h-4 w-4" />
-              {commentCount > 0 ? (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-pill bg-primary px-1 text-[9.5px] font-bold text-white">
-                  {commentCount}
-                </span>
-              ) : null}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Comments</TooltipContent>
-        </Tooltip>
+      {/* RIGHT ZONE — tools, export, generate, AI assistant */}
+      <div className="flex items-center gap-1.5">
+        {iconAction("UML validation", () => setSidePanel("validation"), <ShieldCheck className="h-4 w-4" />)}
+        {iconAction("Architecture analysis", () => setAnalysisOpen(true), <ScanSearch className="h-4 w-4" />)}
+        {iconAction("Generate source code", () => setCodeGenOpen(true), <FileCode2 className="h-4 w-4" />)}
+        {iconAction("Design docs", () => setDocsOpen(true), <FileText className="h-4 w-4" />)}
+        {iconAction("Version history", () => setVersionOpen(true), <History className="h-4 w-4" />)}
+        {iconAction("Toggle code panel", onToggleCodePanel, <Code2 className="h-4 w-4" />, codePanelOpen)}
+        {iconAction("Share diagram", () => setShareOpen(true), <Share2 className="h-4 w-4" />)}
+        {iconAction("Comments", () => useEditorUI.getState().setCommentsOpen(true), <MessageSquare className="h-4 w-4" />, commentCount > 0)}
+        <div className="h-6 w-px bg-gray-200" />
 
         <DropdownMenu open={exportOpen} onOpenChange={setExportOpen}>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-1.5">
+            <Button variant="outline" size="sm" className="gap-1.5">
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">Export</span>
               <ChevronDown className="h-3 w-3 opacity-60" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel>Export diagram</DropdownMenuLabel>
             {exportFormats.map((format) => (
               <DropdownMenuItem key={format.id} onClick={() => onExport(format.id)}>
                 <span className="flex w-full items-center justify-between">
                   <span className="font-medium">{format.label}</span>
-                  <span className="text-xs text-muted-foreground">{format.hint}</span>
+                  <span className="text-xs text-gray-400">{format.hint}</span>
                 </span>
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onExport("json")}>
-              <span className="text-xs text-muted-foreground">Share as JSON link</span>
+              <span className="text-xs text-gray-400">Share as JSON link</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button variant="outline" onClick={() => setAiGenerateOpen(true)} className="gap-1.5" aria-label="Generate diagram with AI">
-          <Sparkles className="h-4 w-4" />
-          <span className="hidden sm:inline">Generate</span>
+        <Button size="sm" className="bg-[#0052CC] text-white hover:bg-[#0747A6]" onClick={() => setAiGenerateOpen(true)} aria-label="Generate diagram with AI">
+          <Sparkles className="h-4 w-4 mr-1" />
+          Generate
         </Button>
-
-        <Button onClick={() => setSidePanel("ai")} className="gap-1.5">
-          <Wand2 className="h-4 w-4" />
-          <Sparkles className="h-3 w-3 text-amber-300" />
-          <span className="hidden sm:inline">AI Assistant</span>
+        <Button size="sm" variant="outline" onClick={() => setSidePanel("ai")} aria-label="Open AI assistant">
+          <Bot className="h-4 w-4 mr-1" />
+          AI Assistant
         </Button>
       </div>
-    </motion.div>
+    </div>
   );
 }

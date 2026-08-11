@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auth } from "@/lib/auth";
 import { streamText } from "ai";
 import { parseArchitectureDiagram } from "@/lib/architecture/parse";
 import { validateArchitecture } from "@/lib/architecture/validate";
@@ -261,17 +262,34 @@ function roleDescription(kind: string): string {
 /* ---------------- route ---------------- */
 
 export async function POST(request: Request): Promise<Response> {
-  let body: unknown;
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+    const parsed = requestSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request: " + (parsed.error.issues[0]?.message ?? "unknown") }, { status: 400 });
+    }
+    return await streamResponse(parsed.data);
+  } catch (error) {
+    // NEVER surface a 500 to the frontend — degrade to the local engine instead.
+    console.error("[ai] unexpected route failure", error);
+    return streamOffline({
+      message: "Describe the system you want to model.",
+      action: "generate",
+      mermaid: undefined,
+      selectedNode: null,
+      history: [],
+    });
   }
-  const parsed = requestSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request: " + (parsed.error.issues[0]?.message ?? "unknown") }, { status: 400 });
-  }
-  return streamResponse(parsed.data);
 }
 
 async function streamResponse(input: ValidRequest): Promise<Response> {
@@ -345,6 +363,10 @@ async function getAnthropicModule() {
 
 async function streamOffline(input: ValidRequest): Promise<Response> {
   return streamSse(async (writer) => {
+    writer.write(
+      "meta",
+      JSON.stringify({ fallback: true, message: "Offline mode — local extraction engine active" })
+    );
     let content: string;
     const mermaid = input.mermaid ?? "";
 
