@@ -45,16 +45,28 @@ export const authConfig: NextAuthConfig = {
     maxAge: 30 * 24 * 60 * 60,
     updateAge: 24 * 60 * 60,
   },
+  cookies: {
+    sessionToken: {
+      name: "session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 30 * 24 * 60 * 60,
+      },
+    },
+  },
   pages: {
     signIn: "/login",
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.userId = user.id;
+      if (user) token.sub = user.id;
       return token;
     },
     async session({ session, token }) {
-      if (session.user) session.user.id = (token.userId as string) ?? session.user.id;
+      if (token?.sub && session.user) session.user.id = token.sub;
       return session;
     },
   },
