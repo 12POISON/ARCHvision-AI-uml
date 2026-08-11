@@ -18,7 +18,13 @@ export default async function ProjectsPage(): Promise<React.ReactElement> {
     redirect("/login");
   }
 
-  const projects = await repository.listProjects();
+  let projects: Awaited<ReturnType<typeof repository.listProjects>> = [];
+  let loadError: string | null = null;
+  try {
+    projects = await repository.listProjects();
+  } catch (err) {
+    loadError = err instanceof Error ? err.message : "Unknown error";
+  }
 
   return (
     <main className="min-h-screen bg-white">
@@ -42,7 +48,14 @@ export default async function ProjectsPage(): Promise<React.ReactElement> {
           </Link>
         </div>
 
-        {projects.length === 0 ? (
+        {loadError ? (
+          <div className="mt-10 rounded-xl border border-amber-200 bg-amber-50 p-12 text-center">
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Couldn&apos;t load projects</h2>
+            <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">
+              The workspace data service is temporarily unavailable. Please try again shortly.
+            </p>
+          </div>
+        ) : projects.length === 0 ? (
           <div className="mt-10 rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
             <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
               <FolderKanban className="h-6 w-6" />
