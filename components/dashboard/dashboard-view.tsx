@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, FilePlus2, FolderKanban, RefreshCw, Workflow } from "lucide-react";
 import { StatsBar } from "@/components/dashboard/stats-bar";
 import { NewDiagramModal } from "@/components/dashboard/new-diagram-modal";
+import { NewProjectModal } from "@/components/dashboard/new-project-modal";
 import { NewProjectCard } from "@/components/dashboard/project-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ interface DashboardViewProps {
 
 export function DashboardView({ user, projects, diagrams }: DashboardViewProps): React.ReactElement {
   const [modalOpen, setModalOpen] = React.useState(false);
+  const [projectModalOpen, setProjectModalOpen] = React.useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -37,7 +39,12 @@ export function DashboardView({ user, projects, diagrams }: DashboardViewProps):
   React.useEffect(() => {
     const handler = (): void => setModalOpen(true);
     window.addEventListener("archvision:new-diagram", handler);
-    return () => window.removeEventListener("archvision:new-diagram", handler);
+    const projectHandler = (): void => setProjectModalOpen(true);
+    window.addEventListener("archvision:new-project", projectHandler);
+    return () => {
+      window.removeEventListener("archvision:new-diagram", handler);
+      window.removeEventListener("archvision:new-project", projectHandler);
+    };
   }, []);
 
   React.useEffect(() => {
@@ -187,7 +194,7 @@ export function DashboardView({ user, projects, diagrams }: DashboardViewProps):
             Projects group your diagrams into one workspace.
           </p>
           <div className="mt-6">
-            <Button onClick={() => setModalOpen(true)}>
+            <Button onClick={() => setProjectModalOpen(true)}>
               <FilePlus2 className="h-4 w-4" />
               Create your first project
             </Button>
@@ -220,11 +227,12 @@ export function DashboardView({ user, projects, diagrams }: DashboardViewProps):
               </div>
             </Link>
           ))}
-          <NewProjectCard onClick={() => setModalOpen(true)} />
+          <NewProjectCard onClick={() => setProjectModalOpen(true)} />
         </div>
       )}
 
-      <NewDiagramModal open={modalOpen} onOpenChange={setModalOpen} />
+      <NewDiagramModal open={modalOpen} onOpenChange={setModalOpen} projects={projects} />
+      <NewProjectModal open={projectModalOpen} onOpenChange={setProjectModalOpen} />
     </div>
   );
 }

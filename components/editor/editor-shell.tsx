@@ -17,7 +17,14 @@ import { CodeGenModal } from "@/components/editor/codegen-modal";
 import { DocsModal } from "@/components/editor/docs-modal";
 import { MermaidRenderer } from "@/components/editor/mermaid-renderer";
 import { VersionHistoryModal } from "@/components/editor/version-history-modal";
+import { AIGenerateModal } from "@/components/editor/ai-generate-modal";
+import { ImportModal } from "@/components/editor/import-modal";
+import { ShareModal } from "@/components/editor/share-modal";
+import { CheatSheetModal } from "@/components/editor/cheat-sheet-modal";
+import { CommentPanel } from "@/components/editor/comment-panel";
 import { useDiagram, useEditorUI } from "@/hooks/useDiagram";
+import { useEditorShortcuts } from "@/hooks/useEditorShortcuts";
+import { useCommentsStore } from "@/lib/editor/comments";
 import { exportDiagram, type ExportFormat } from "@/lib/export/engine";
 import { storage } from "@/lib/data/storage";
 import { toast } from "@/components/ui/toast";
@@ -32,12 +39,17 @@ export function EditorShell({ diagramId }: { diagramId: string }): React.ReactEl
   const [exporting, setExporting] = React.useState<ExportFormat | null>(null);
   const [overrideBlock, setOverrideBlock] = React.useState(false);
   const [paletteOpen, setPaletteOpen] = React.useState(true);
+  const commentCount = useCommentsStore((s) => s.comments[diagramId]?.length ?? 0);
+
+  useEditorShortcuts(engine);
 
   React.useEffect(() => {
     const handleNew = (): void => {
       router.push("/dashboard?new=1");
     };
     window.addEventListener("archvision:new-diagram", handleNew);
+    const handleTogglePalette = (): void => setPaletteOpen((open) => !open);
+    window.addEventListener("archvision:toggle-palette", handleTogglePalette);
     const listeners: Array<[string, () => void]> = [
       ["archvision:toggle-code", () => ui.setCodePanelOpen(!ui.codePanelOpen)],
       ["archvision:ai-sidebar", () => ui.setSidePanel(ui.sidePanel === "ai" ? null : "ai")],
@@ -50,6 +62,7 @@ export function EditorShell({ diagramId }: { diagramId: string }): React.ReactEl
     listeners.forEach(([name, fn]) => window.addEventListener(name, fn));
     return () => {
       window.removeEventListener("archvision:new-diagram", handleNew);
+      window.removeEventListener("archvision:toggle-palette", handleTogglePalette);
       listeners.forEach(([name, fn]) => window.removeEventListener(name, fn));
     };
   }, [ui, router]);
@@ -124,6 +137,8 @@ export function EditorShell({ diagramId }: { diagramId: string }): React.ReactEl
             onExport={(f) => void handleExport(f)}
             codePanelOpen={ui.codePanelOpen}
             onToggleCodePanel={() => ui.setCodePanelOpen(!ui.codePanelOpen)}
+            engine={engine}
+            commentCount={commentCount}
           />
         </div>
       </div>
@@ -138,7 +153,30 @@ export function EditorShell({ diagramId }: { diagramId: string }): React.ReactEl
             </div>
           )}
 
-          {isClassModel ? <PaletteSidebar open={paletteOpen} onClose={() => setPaletteOpen(false)} /> : null}
+          {isClassModel ? (
+            <PaletteSidebar
+              open={paletteOpen}
+              onClose={() => setPaletteOpen(false)}
+              onApplyTemplate={(code, name) => {
+                engine.applyDiagram(code);
+                toast("success", `Template “${name}” applied`);
+              }}
+              onSaveTemplate={(code) => {
+                try {
+                  const existing = JSON.parse(window.localStorage.getItem("archvision:my-templates") ?? "[]") as Array<{ id: string; name: string; code: string }>;
+                  const entry = {
+                    id: `t_${Date.now().toString(36)}`,
+                    name: engine.name,
+                    code,
+                  };
+                  window.localStorage.setItem("archvision:my-templates", JSON.stringify([entry, ...existing]));
+                } catch {
+                  /* storage unavailable */
+                }
+              }}
+              mermaidCode={engine.mermaidCode}
+            />
+          ) : null}
           {isClassModel ? <PropertiesPanel engine={engine} /> : null}
 
           <div ref={canvasRef} data-mermaid-code={engine.mermaidCode} className="hidden">
@@ -187,10 +225,37 @@ export function EditorShell({ diagramId }: { diagramId: string }): React.ReactEl
             />
           ) : null}
         </AnimatePresence>
+
+        <AnimatePresence>
+          {ui.commentsOpen ? (
+            <CommentPanel
+              diagramId={diagramId}
+              open
+              onClose={() => useCommentsStore.getState().setOpen(false)}
+            />
+          ) : null}
+        </AnimatePresence>
       </div>
 
       <AnalysisOverlay open={ui.analysisOpen} onClose={() => ui.setAnalysisOpen(false)} model={engine.model} />
       <CodeGenModal open={ui.codeGenOpen} onOpenChange={ui.setCodeGenOpen} model={engine.model} />
+      <AIGenerateModal
+        open={ui.aiGenerateOpen}
+        onOpenChange={ui.setAiGenerateOpen}
+        onApply={(code) => engine.applyDiagram(code)}
+      />
+      <ImportModal
+        open={ui.importOpen}
+        onOpenChange={ui.setImportOpen}
+        onApply={(code) => engine.applyDiagram(code)}
+      />
+      <ShareModal
+        open={ui.shareOpen}
+        onOpenChange={ui.setShareOpen}
+        diagramId={diagramId}
+        diagramName={engine.name}
+      />
+      <CheatSheetModal open={ui.cheatSheetOpen} onOpenChange={ui.setCheatSheetOpen} />
       <DocsModal
         open={ui.docsOpen}
         onOpenChange={ui.setDocsOpen}

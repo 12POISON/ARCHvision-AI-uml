@@ -3,11 +3,14 @@
 import * as React from "react";
 import { BaseEdge, getBezierPath, type EdgeProps } from "@xyflow/react";
 import type { UMLFlowEdge } from "@/lib/mermaid/transformer";
+import { orthogonalPath, pathMidpoint, type Point, type Side } from "@/lib/editor/orthogonal";
 
 interface EdgeData {
   relationType: string;
   fromMultiplicity?: string | null;
   toMultiplicity?: string | null;
+  orthogonal?: boolean;
+  waypoints?: Point[];
 }
 
 function markerFor(type: string): { markerEnd: string; strokeDasharray?: string; stroke?: string } {
@@ -40,18 +43,41 @@ export function UMLRelationshipEdge({
   label,
   selected,
 }: EdgeProps<UMLFlowEdge>): React.ReactElement {
-  const [path] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  });
   const edgeData = (data ?? {}) as unknown as EdgeData;
   const style = markerFor(edgeData.relationType);
   const labelText = typeof label === "string" ? label : null;
   const labelWidth = labelText ? labelText.length * 7 + 12 : 0;
+
+  let path: string;
+  let mid: Point;
+  const source = { x: sourceX, y: sourceY };
+  const target = { x: targetX, y: targetY };
+  if (edgeData.orthogonal) {
+    const pts: Point[] = [source];
+    if (edgeData.waypoints && edgeData.waypoints.length > 0) {
+      pts.push(...edgeData.waypoints);
+    }
+    pts.push(target);
+    const sides = [sourcePosition, targetPosition] as Side[];
+    if (edgeData.waypoints && edgeData.waypoints.length > 0) {
+      let d = `M ${pts[0].x} ${pts[0].y}`;
+      for (const p of pts.slice(1)) d += ` L ${p.x} ${p.y}`;
+      path = d;
+    } else {
+      path = orthogonalPath(source, target, sides[0], sides[1]);
+    }
+    mid = pathMidpoint(pts);
+  } else {
+    [path] = getBezierPath({
+      sourceX,
+      sourceY,
+      sourcePosition,
+      targetX,
+      targetY,
+      targetPosition,
+    });
+    mid = { x: (sourceX + targetX) / 2, y: (sourceY + targetY) / 2 };
+  }
 
   return (
     <>
@@ -89,7 +115,7 @@ export function UMLRelationshipEdge({
           x={0}
           y={0}
           className="pointer-events-none"
-          style={{ transform: `translate(${sourceX + (targetX - sourceX) / 2 - labelWidth / 2}px, ${sourceY + (targetY - sourceY) / 2 - 11}px)` }}
+          style={{ transform: `translate(${mid.x - labelWidth / 2}px, ${mid.y - 11}px)` }}
         >
           <span className="rounded-full border border-line bg-white px-2 py-0.5 font-mono text-[10.5px] text-slate-600 shadow-sm">
             {labelText}

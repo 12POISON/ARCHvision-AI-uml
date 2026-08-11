@@ -28,6 +28,7 @@ interface NewDiagramModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId?: string | null;
+  projects?: Array<{ id: string; name: string }>;
 }
 
 interface ScopeEntity {
@@ -35,9 +36,10 @@ interface ScopeEntity {
   included: boolean;
 }
 
-export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramModalProps): React.ReactElement {
+export function NewDiagramModal({ open, onOpenChange, projectId, projects: injectedProjects }: NewDiagramModalProps): React.ReactElement {
   const router = useRouter();
-  const { projects } = useProjectsData();
+  const { projects: hookProjects } = useProjectsData();
+  const projects = injectedProjects ?? hookProjects;
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [selectedProject, setSelectedProject] = React.useState("");
@@ -102,15 +104,35 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
                 id="nd-project"
                 value={selectedProject}
                 onChange={(e) => setSelectedProject(e.target.value)}
-                className="input-base cursor-pointer appearance-none"
+                className="input-base cursor-pointer appearance-none disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label="Project"
+                disabled={projects.length === 0}
               >
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
+                {projects.length === 0 ? (
+                  <option value="">No projects yet</option>
+                ) : (
+                  projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))
+                )}
               </select>
+              {projects.length === 0 ? (
+                <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">
+                  No projects yet.{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenChange(false);
+                      window.dispatchEvent(new CustomEvent("archvision:new-project"));
+                    }}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    Create one first
+                  </button>
+                </p>
+              ) : null}
             </div>
           </div>
 

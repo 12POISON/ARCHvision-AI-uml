@@ -33,6 +33,11 @@ export interface EditorUIState {
   codeGenOpen: boolean;
   docsOpen: boolean;
   versionOpen: boolean;
+  shareOpen: boolean;
+  aiGenerateOpen: boolean;
+  importOpen: boolean;
+  commentsOpen: boolean;
+  cheatSheetOpen: boolean;
   setSidePanel: (panel: EditorUIState["sidePanel"]) => void;
   setCodePanelOpen: (open: boolean) => void;
   setAnalysisOpen: (open: boolean) => void;
@@ -40,6 +45,11 @@ export interface EditorUIState {
   setCodeGenOpen: (open: boolean) => void;
   setDocsOpen: (open: boolean) => void;
   setVersionOpen: (open: boolean) => void;
+  setShareOpen: (open: boolean) => void;
+  setAiGenerateOpen: (open: boolean) => void;
+  setImportOpen: (open: boolean) => void;
+  setCommentsOpen: (open: boolean) => void;
+  setCheatSheetOpen: (open: boolean) => void;
 }
 
 export const useEditorUI = create<EditorUIState>((set) => ({
@@ -50,6 +60,11 @@ export const useEditorUI = create<EditorUIState>((set) => ({
   codeGenOpen: false,
   docsOpen: false,
   versionOpen: false,
+  shareOpen: false,
+  aiGenerateOpen: false,
+  importOpen: false,
+  commentsOpen: false,
+  cheatSheetOpen: false,
   setSidePanel: (sidePanel) => set({ sidePanel }),
   setCodePanelOpen: (codePanelOpen) => set({ codePanelOpen }),
   setAnalysisOpen: (analysisOpen) => set({ analysisOpen }),
@@ -57,6 +72,11 @@ export const useEditorUI = create<EditorUIState>((set) => ({
   setCodeGenOpen: (codeGenOpen) => set({ codeGenOpen }),
   setDocsOpen: (docsOpen) => set({ docsOpen }),
   setVersionOpen: (versionOpen) => set({ versionOpen }),
+  setShareOpen: (shareOpen) => set({ shareOpen }),
+  setAiGenerateOpen: (aiGenerateOpen) => set({ aiGenerateOpen }),
+  setImportOpen: (importOpen) => set({ importOpen }),
+  setCommentsOpen: (commentsOpen) => set({ commentsOpen }),
+  setCheatSheetOpen: (cheatSheetOpen) => set({ cheatSheetOpen }),
 }));
 
 export interface DiagramEngine {
@@ -98,7 +118,16 @@ export interface DiagramEngine {
   ) => void;
   updateRelationship: (id: string, patch: RelationshipEditPatch) => void;
   removeRelationship: (id: string) => void;
+  /* ---- undo/redo history ---- */
+  canUndo: boolean;
+  canRedo: boolean;
+  undo: () => void;
+  redo: () => void;
+  isSaving: boolean;
+  lastSaved: Date | null;
 }
+
+const HISTORY_LIMIT = 50;
 
 export function useDiagram(diagramId: string): DiagramEngine {
   const [mermaidCode, setMermaidCodeState] = useState("");
@@ -113,14 +142,45 @@ export function useDiagram(diagramId: string): DiagramEngine {
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [versions, setVersions] = useState<DiagramVersion[]>([]);
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const historyRef = useRef<string[]>([]);
+  const historyIndexRef = useRef(-1);
 
   const persistRef = useRef(true);
   const hydratedRef = useRef(false);
+  const mermaidCodeRef = useRef("");
 
-  const setMermaidCode = useCallback((code: string, opts?: { persist?: boolean }) => {
-    if (opts?.persist !== false) persistRef.current = true;
-    setMermaidCodeState(code);
+  useEffect(() => {
+    mermaidCodeRef.current = mermaidCode;
+  }, [mermaidCode]);
+
+  /** Record a history snapshot of the CURRENT code (call before applying a change). */
+  const pushHistory = useCallback((code: string) => {
+    if (!hydratedRef.current) return;
+    const list = historyRef.current;
+    const atTop = historyIndexRef.current >= list.length - 1;
+    if (atTop && list[list.length - 1] === code) return;
+    const truncated = list.slice(0, historyIndexRef.current + 1);
+    const next = [...truncated, code];
+    const capped = next.length > HISTORY_LIMIT ? next.slice(next.length - HISTORY_LIMIT) : next;
+    const offset = next.length - capped.length;
+    historyRef.current = capped;
+    historyIndexRef.current = historyIndexRef.current + 1 - offset;
+    setHistory(capped);
+    setHistoryIndex(historyIndexRef.current);
   }, []);
+
+  const setMermaidCode = useCallback(
+    (code: string, opts?: { persist?: boolean }) => {
+      if (opts?.persist !== false) persistRef.current = true;
+      pushHistory(mermaidCodeRef.current);
+      setMermaidCodeState(code);
+    },
+    [pushHistory]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -148,8 +208,15 @@ export function useDiagram(diagramId: string): DiagramEngine {
   const persist = useCallback(
     debounce((code: string, viewMode: ViewMode) => {
       if (!persistRef.current || !hydratedRef.current) return;
-      void storage.updateDiagram(diagramId, { mermaidCode: code, viewMode });
-    }, 400),
+      setIsSaving(true);
+      void storage
+        .updateDiagram(diagramId, { mermaidCode: code, viewMode })
+        .then(() => {
+          setLastSaved(new Date());
+          setIsSaving(false);
+        })
+        .catch(() => setIsSaving(false));
+    }, 600),
     [diagramId]
   );
 
@@ -184,9 +251,11 @@ export function useDiagram(diagramId: string): DiagramEngine {
   }, [diagramId]);
 
   const applyDiagram = useCallback((code: string) => {
+    pushHistory(mermaidCodeRef.current);
     persistRef.current = true;
     setMermaidCodeState(code);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pushHistory]);
 
   const setViewMode = useCallback((viewModeToSet: ViewMode) => {
     persistRef.current = true;
@@ -203,10 +272,14 @@ export function useDiagram(diagramId: string): DiagramEngine {
     setSelectedEdgeId(edgeId);
   }, []);
 
-  const commitArchitecture = useCallback((next: Architecture) => {
-    persistRef.current = true;
-    setMermaidCodeState(architectureToMermaid(next));
-  }, []);
+  const commitArchitecture = useCallback(
+    (next: Architecture) => {
+      pushHistory(mermaidCodeRef.current);
+      persistRef.current = true;
+      setMermaidCodeState(architectureToMermaid(next));
+    },
+    [pushHistory]
+  );
 
   /* ---- visual editor mutations ---- */
 
@@ -273,6 +346,29 @@ export function useDiagram(diagramId: string): DiagramEngine {
     },
     [architecture, commitArchitecture]
   );
+
+  /* ---- undo/redo ---- */
+
+  const undo = useCallback(() => {
+    const idx = historyIndexRef.current;
+    if (idx <= 0) return;
+    const target = historyRef.current[idx - 1];
+    if (target === undefined) return;
+    historyIndexRef.current = idx - 1;
+    setHistoryIndex(idx - 1);
+    persistRef.current = true;
+    setMermaidCodeState(target);
+  }, []);
+
+  const redo = useCallback(() => {
+    const idx = historyIndexRef.current;
+    const target = historyRef.current[idx + 1];
+    if (target === undefined) return;
+    historyIndexRef.current = idx + 1;
+    setHistoryIndex(idx + 1);
+    persistRef.current = true;
+    setMermaidCodeState(target);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsSyncing(false), 600);
@@ -356,5 +452,11 @@ export function useDiagram(diagramId: string): DiagramEngine {
     addRelationship,
     updateRelationship,
     removeRelationship,
+    canUndo: historyIndex > 0,
+    canRedo: historyIndex < history.length - 1,
+    undo,
+    redo,
+    isSaving,
+    lastSaved,
   };
 }
