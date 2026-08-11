@@ -3,19 +3,24 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowRight, FilePlus2, FolderKanban, RefreshCw, Workflow } from "lucide-react";
 import { StatsBar } from "@/components/dashboard/stats-bar";
 import { NewDiagramModal } from "@/components/dashboard/new-diagram-modal";
-import { NewProjectCard, useProjectsData } from "@/components/dashboard/project-card";
+import { NewProjectCard } from "@/components/dashboard/project-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatRelativeTime } from "@/lib/utils";
 import { DIAGRAM_TYPES } from "@/types/diagram";
+import type { Diagram, Project } from "@/types/diagram";
 
-export function Dashboard({ userName }: { userName: string }): React.ReactElement {
-  const { projects, reload } = useProjectsData();
+interface DashboardViewProps {
+  user: { name?: string | null };
+  projects: Project[];
+  diagrams: Diagram[];
+}
+
+export function DashboardView({ user, projects, diagrams }: DashboardViewProps): React.ReactElement {
   const [modalOpen, setModalOpen] = React.useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -49,15 +54,13 @@ export function Dashboard({ userName }: { userName: string }): React.ReactElemen
     window.history.replaceState(null, "", url.toString());
   }, [searchParams]);
 
-  const allDiagrams = projects.flatMap((project) =>
-    project.diagrams.map((diagram) => ({ ...diagram, projectName: project.name }))
-  );
-  const recentDiagrams = [...allDiagrams]
+  const recentDiagrams = [...diagrams]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 4);
 
-  const totalDiagrams = projects.reduce((sum, p) => sum + p.diagrams.length, 0);
-  const totalClasses = projects.reduce((sum, p) => sum + p.diagrams.length * 4, 0);
+  const totalDiagrams = diagrams.length;
+  const totalClasses = diagrams.length * 4;
+  const userName = user?.name?.split(" ")[0] ?? "Explorer";
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-24 pt-28 sm:px-6 lg:px-8">
@@ -70,7 +73,7 @@ export function Dashboard({ userName }: { userName: string }): React.ReactElemen
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Workspace</p>
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-            {userName ? `Welcome back, ${userName.split(" ")[0]}` : "Your workspace"}
+            Welcome back, {userName}
           </h1>
           <p className="mt-2 text-sm text-muted">
             {projects.length} {projects.length === 1 ? "project" : "projects"} · {totalDiagrams}{" "}
@@ -78,7 +81,7 @@ export function Dashboard({ userName }: { userName: string }): React.ReactElemen
           </p>
         </div>
         <div className="flex items-center gap-2.5">
-          <Button variant="outline" onClick={reload} aria-label="Refresh workspace">
+          <Button variant="outline" onClick={() => router.refresh()} aria-label="Refresh workspace">
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
@@ -130,41 +133,43 @@ export function Dashboard({ userName }: { userName: string }): React.ReactElemen
       </div>
 
       {recentDiagrams.length === 0 ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-[96px]" />
-          ))}
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
+          <h3 className="text-lg font-extrabold tracking-tight text-foreground">No diagrams yet. Create your first.</h3>
+          <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">
+            Paste a vision in plain language and the AI engine turns it into architecture.
+          </p>
+          <div className="mt-6">
+            <Button onClick={() => setModalOpen(true)}>
+              <FilePlus2 className="h-4 w-4" />
+              Create your first diagram
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <AnimatePresence mode="popLayout">
-            {recentDiagrams.map((diagram) => (
-              <motion.div
-                key={diagram.id}
-                layout
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+          {recentDiagrams.map((diagram) => (
+            <motion.div
+              key={diagram.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <Link
+                href={`/editor/${diagram.id}`}
+                className="group flex h-full flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-primary"
               >
-                <Link
-                  href={`/editor/${diagram.id}`}
-                  className="group flex h-full flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-primary"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="min-w-0 truncate text-sm font-bold text-foreground">{diagram.name}</span>
-                    <Badge variant="soft-blue" className="shrink-0">
-                      {DIAGRAM_TYPES.find((t) => t.value === diagram.type)?.label ?? diagram.type}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 truncate text-[12px] text-muted-foreground">{diagram.projectName}</p>
-                  <p className="mt-auto pt-3 text-[11px] text-muted-foreground/80">
-                    Updated {formatRelativeTime(diagram.updatedAt)}
-                  </p>
-                </Link>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 truncate text-sm font-bold text-foreground">{diagram.name}</span>
+                  <Badge variant="soft-blue" className="shrink-0">
+                    {DIAGRAM_TYPES.find((t) => t.value === diagram.type)?.label ?? diagram.type}
+                  </Badge>
+                </div>
+                <p className="mt-auto pt-3 text-[11px] text-muted-foreground/80">
+                  Updated {formatRelativeTime(diagram.updatedAt)}
+                </p>
+              </Link>
+            </motion.div>
+          ))}
         </div>
       )}
 
@@ -176,10 +181,17 @@ export function Dashboard({ userName }: { userName: string }): React.ReactElemen
       </div>
 
       {projects.length === 0 ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-[220px]" />
-          <Skeleton className="h-[220px]" />
-          <NewProjectCard onClick={() => setModalOpen(true)} />
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
+          <h3 className="text-lg font-extrabold tracking-tight text-foreground">No projects yet. Create your first.</h3>
+          <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">
+            Projects group your diagrams into one workspace.
+          </p>
+          <div className="mt-6">
+            <Button onClick={() => setModalOpen(true)}>
+              <FilePlus2 className="h-4 w-4" />
+              Create your first project
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -200,7 +212,7 @@ export function Dashboard({ userName }: { userName: string }): React.ReactElemen
               <div className="mt-auto flex items-center justify-between pt-4">
                 <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                   <Workflow className="h-3.5 w-3.5" />
-                  {project.diagrams.length} {project.diagrams.length === 1 ? "diagram" : "diagrams"}
+                  {project.diagramCount} {project.diagramCount === 1 ? "diagram" : "diagrams"}
                 </span>
                 <span className="text-[13px] font-semibold text-primary transition-colors group-hover:text-primary-deep">
                   Open →
