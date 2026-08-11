@@ -1,0 +1,360 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { create } from "zustand";
+import type { Architecture, DiagramType, ValidationResult, ViewMode } from "@/types/diagram";
+import { parseArchitectureDiagram } from "@/lib/architecture/parse";
+import { validateArchitecture } from "@/lib/architecture/validate";
+import { architectureToMermaid, architectureToLegacyForCanvas } from "@/lib/architecture/serialization";
+import { architectureToLegacy } from "@/lib/architecture/model";
+import { layoutModel, type UMLFlowEdge, type UMLFlowNode } from "@/lib/mermaid/transformer";
+import { storage } from "@/lib/data/storage";
+import { debounce } from "@/lib/utils";
+import type { DiagramVersion } from "@/lib/architecture/versions";
+import { createVersion } from "@/lib/architecture/versions";
+import type { ArchitectureChange } from "@/lib/architecture/transforms";
+import { applyChanges } from "@/lib/architecture/transforms";
+import type { ArchitectureNodeKind, ArchitectureRelationshipType } from "@/types/diagram";
+import type { NodeEditPatch, RelationshipEditPatch } from "@/lib/architecture/editing";
+import {
+  addArchitectureNode,
+  addArchitectureRelationship,
+  removeArchitectureNode,
+  removeArchitectureRelationship,
+  updateArchitectureNode,
+  updateArchitectureRelationship,
+} from "@/lib/architecture/editing";
+
+export interface EditorUIState {
+  sidePanel: "ai" | "validation" | null;
+  codePanelOpen: boolean;
+  analysisOpen: boolean;
+  scopeWizardOpen: boolean;
+  codeGenOpen: boolean;
+  docsOpen: boolean;
+  versionOpen: boolean;
+  setSidePanel: (panel: EditorUIState["sidePanel"]) => void;
+  setCodePanelOpen: (open: boolean) => void;
+  setAnalysisOpen: (open: boolean) => void;
+  setScopeWizardOpen: (open: boolean) => void;
+  setCodeGenOpen: (open: boolean) => void;
+  setDocsOpen: (open: boolean) => void;
+  setVersionOpen: (open: boolean) => void;
+}
+
+export const useEditorUI = create<EditorUIState>((set) => ({
+  sidePanel: null,
+  codePanelOpen: false,
+  analysisOpen: false,
+  scopeWizardOpen: false,
+  codeGenOpen: false,
+  docsOpen: false,
+  versionOpen: false,
+  setSidePanel: (sidePanel) => set({ sidePanel }),
+  setCodePanelOpen: (codePanelOpen) => set({ codePanelOpen }),
+  setAnalysisOpen: (analysisOpen) => set({ analysisOpen }),
+  setScopeWizardOpen: (scopeWizardOpen) => set({ scopeWizardOpen }),
+  setCodeGenOpen: (codeGenOpen) => set({ codeGenOpen }),
+  setDocsOpen: (docsOpen) => set({ docsOpen }),
+  setVersionOpen: (versionOpen) => set({ versionOpen }),
+}));
+
+export interface DiagramEngine {
+  diagramId: string;
+  name: string;
+  type: DiagramType;
+  mermaidCode: string;
+  viewMode: ViewMode;
+  architecture: Architecture;
+  model: Parameters<typeof layoutModel>[0];
+  nodes: UMLFlowNode[];
+  edges: UMLFlowEdge[];
+  validation: ValidationResult | null;
+  parseError: string | null;
+  versions: DiagramVersion[];
+  versionCount: number;
+  ready: boolean;
+  missing: boolean;
+  setMermaidCode: (code: string, opts?: { persist?: boolean }) => void;
+  applyDiagram: (code: string) => void;
+  setViewMode: (mode: ViewMode) => void;
+  selectNode: (id: string | null) => void;
+  selectedNodeId: string | null;
+  selectedEdgeId: string | null;
+  setSelection: (nodeId: string | null, edgeId: string | null) => void;
+  isSyncing: boolean;
+  applyChanges: (changes: ArchitectureChange[], message: string) => void;
+  saveVersionNow: (label?: string) => void;
+  restoreVersion: (version: DiagramVersion) => void;
+  /* ---- visual editor mutations (canonical model as single source of truth) ---- */
+  addNode: (kind: ArchitectureNodeKind, name?: string) => string | null;
+  updateNode: (id: string, patch: NodeEditPatch) => string | null;
+  removeNode: (id: string) => void;
+  addRelationship: (
+    source: string,
+    target: string,
+    type: ArchitectureRelationshipType,
+    opts?: { label?: string | null; sourceMultiplicity?: string; targetMultiplicity?: string }
+  ) => void;
+  updateRelationship: (id: string, patch: RelationshipEditPatch) => void;
+  removeRelationship: (id: string) => void;
+}
+
+export function useDiagram(diagramId: string): DiagramEngine {
+  const [mermaidCode, setMermaidCodeState] = useState("");
+  const [viewMode, setMode] = useState<ViewMode>("ENGINEERING");
+  const [name, setName] = useState("Untitled");
+  const [type, setType] = useState<DiagramType>("CLASS");
+  const [ready, setReady] = useState(false);
+  const [missing, setMissing] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [validation, setValidation] = useState<ValidationResult | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [versions, setVersions] = useState<DiagramVersion[]>([]);
+
+  const persistRef = useRef(true);
+  const hydratedRef = useRef(false);
+
+  const setMermaidCode = useCallback((code: string, opts?: { persist?: boolean }) => {
+    if (opts?.persist !== false) persistRef.current = true;
+    setMermaidCodeState(code);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const diagram = await storage.getDiagram(diagramId);
+      if (cancelled) return;
+      if (!diagram) {
+        setMissing(true);
+        setReady(true);
+        return;
+      }
+      hydratedRef.current = true;
+      setName(diagram.name);
+      setType(diagram.type);
+      setMode(diagram.viewMode);
+      setMermaidCodeState(diagram.mermaidCode);
+      setVersions(await storage.listVersions(diagramId));
+      setReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [diagramId]);
+
+  const persist = useCallback(
+    debounce((code: string, viewMode: ViewMode) => {
+      if (!persistRef.current || !hydratedRef.current) return;
+      void storage.updateDiagram(diagramId, { mermaidCode: code, viewMode });
+    }, 400),
+    [diagramId]
+  );
+
+  /* canonical model — single source of truth, derived from mermaid text */
+  const { architecture, error } = useMemo(() => {
+    const { architecture, error } = parseArchitectureDiagram(mermaidCode);
+    return { architecture, error };
+  }, [mermaidCode]);
+
+  useEffect(() => {
+    setParseError(error);
+  }, [error]);
+
+  const model = useMemo(() => architectureToLegacy(architecture), [architecture]);
+
+  const { nodes, edges } = useMemo(
+    () => layoutModel(model as Parameters<typeof layoutModel>[0], viewMode, "LR"),
+    [model, viewMode]
+  );
+
+  useEffect(() => {
+    const result = validateArchitecture(architecture);
+    setValidation(result);
+  }, [architecture]);
+
+  useEffect(() => {
+    if (persistRef.current && hydratedRef.current) persist(mermaidCode, viewMode);
+  }, [mermaidCode, viewMode, persist]);
+
+  const refreshVersions = useCallback(() => {
+    void storage.listVersions(diagramId).then(setVersions);
+  }, [diagramId]);
+
+  const applyDiagram = useCallback((code: string) => {
+    persistRef.current = true;
+    setMermaidCodeState(code);
+  }, []);
+
+  const setViewMode = useCallback((viewModeToSet: ViewMode) => {
+    persistRef.current = true;
+    setMode(viewModeToSet);
+  }, []);
+
+  const selectNode = useCallback((id: string | null) => {
+    setSelectedNodeId(id);
+    setSelectedEdgeId(null);
+  }, []);
+
+  const setSelection = useCallback((nodeId: string | null, edgeId: string | null) => {
+    setSelectedNodeId(nodeId);
+    setSelectedEdgeId(edgeId);
+  }, []);
+
+  const commitArchitecture = useCallback((next: Architecture) => {
+    persistRef.current = true;
+    setMermaidCodeState(architectureToMermaid(next));
+  }, []);
+
+  /* ---- visual editor mutations ---- */
+
+  const addNode = useCallback(
+    (kind: ArchitectureNodeKind, name?: string): string | null => {
+      const { arch, node } = addArchitectureNode(architecture, kind, name);
+      commitArchitecture(arch);
+      setSelectedNodeId(node.id);
+      setSelectedEdgeId(null);
+      return node.id;
+    },
+    [architecture, commitArchitecture]
+  );
+
+  const updateNode = useCallback(
+    (id: string, patch: NodeEditPatch): string | null => {
+      const { arch, id: nextId } = updateArchitectureNode(architecture, id, patch);
+      commitArchitecture(arch);
+      if (nextId !== id) {
+        setSelectedNodeId(nextId);
+        setSelectedEdgeId(null);
+      }
+      return nextId;
+    },
+    [architecture, commitArchitecture]
+  );
+
+  const removeNode = useCallback(
+    (id: string) => {
+      commitArchitecture(removeArchitectureNode(architecture, id));
+      setSelectedNodeId(null);
+      setSelectedEdgeId(null);
+    },
+    [architecture, commitArchitecture]
+  );
+
+  const addRelationship = useCallback(
+    (
+      source: string,
+      target: string,
+      type: ArchitectureRelationshipType,
+      opts?: { label?: string | null; sourceMultiplicity?: string; targetMultiplicity?: string }
+    ) => {
+      const { arch, relationship } = addArchitectureRelationship(architecture, source, target, type, opts);
+      commitArchitecture(arch);
+      setSelectedEdgeId(relationship.id);
+      setSelectedNodeId(null);
+    },
+    [architecture, commitArchitecture]
+  );
+
+  const updateRelationship = useCallback(
+    (id: string, patch: RelationshipEditPatch) => {
+      commitArchitecture(updateArchitectureRelationship(architecture, id, patch));
+    },
+    [architecture, commitArchitecture]
+  );
+
+  const removeRelationship = useCallback(
+    (id: string) => {
+      commitArchitecture(removeArchitectureRelationship(architecture, id));
+      setSelectedNodeId(null);
+      setSelectedEdgeId(null);
+    },
+    [architecture, commitArchitecture]
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsSyncing(false), 600);
+    return () => clearTimeout(timer);
+  }, [mermaidCode]);
+
+  const applyChangesToDiagram = useCallback(
+    (changes: ArchitectureChange[], label: string) => {
+      const current = parseArchitectureDiagram(mermaidCode).architecture;
+      const next = applyChanges(current, changes);
+      const code = architectureToMermaid(next);
+      const nextVersion = createVersion(versions[0] ?? null, code, current, next, label);
+      void storage.saveVersion(diagramId, nextVersion);
+      void storage.updateDiagram(diagramId, { mermaidCode: code });
+      persistRef.current = true;
+      setMermaidCode(code);
+      void refreshVersions();
+    },
+    [diagramId, mermaidCode, versions, refreshVersions]
+  );
+
+  const saveVersionNow = useCallback(
+    (label?: string) => {
+      const current = parseArchitectureDiagram(mermaidCode).architecture;
+      const previous = versions[0] ?? null;
+      const version = createVersion(previous, mermaidCode, null, current, label);
+      void storage.saveVersion(diagramId, version);
+      void refreshVersions();
+    },
+    [diagramId, mermaidCode, versions, refreshVersions]
+  );
+
+  const restoreVersion = useCallback(
+    (version: DiagramVersion) => {
+      persistRef.current = true;
+      setMermaidCode(version.mermaidCode);
+      const restored = parseArchitectureDiagram(version.mermaidCode).architecture;
+      const entry = createVersion(
+        versions[0] ?? null,
+        version.mermaidCode,
+        parseArchitectureDiagram(mermaidCode).architecture,
+        restored,
+        `Restored ${version.label}`
+      );
+      void storage.saveVersion(diagramId, entry);
+      void refreshVersions();
+    },
+    [diagramId, mermaidCode, versions, refreshVersions]
+  );
+
+  return {
+    diagramId,
+    name,
+    type,
+    mermaidCode,
+    viewMode,
+    architecture,
+    model,
+    nodes,
+    edges,
+    validation,
+    parseError,
+    versions,
+    versionCount: versions.length,
+    ready,
+    missing,
+    setMermaidCode,
+    applyDiagram,
+    setViewMode,
+    selectNode,
+    selectedNodeId,
+    selectedEdgeId,
+    setSelection,
+    isSyncing,
+    applyChanges: applyChangesToDiagram,
+    saveVersionNow,
+    restoreVersion,
+    addNode,
+    updateNode,
+    removeNode,
+    addRelationship,
+    updateRelationship,
+    removeRelationship,
+  };
+}

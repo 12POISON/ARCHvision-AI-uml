@@ -1,36 +1,118 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ArchVision AI ⚡ Automatic UML Diagram Generator
 
-## Getting Started
+Transform **natural language, code repositories and database schemas** into production-ready UML
+diagrams — then refine them with plain-English prompts, validate the architecture, and export
+clean artifacts.
 
-First, run the development server:
+> **Zero-config mode:** the app runs fully offline with no API keys, database or Redis. Demo auth,
+> localStorage persistence and ArchVision's local extraction engine power every feature. Add
+> keys/DBs and the same code paths switch to GPT-4o / Claude, PostgreSQL and Redis-backed jobs.
+
+---
+
+## ✨ Features
+
+| Area | Capability |
+| --- | --- |
+| **Diagram engine** | Bi-directional Mermaid ↔ ReactFlow canvas (drag, connect, minimap, dagre auto-layout) |
+| **Code editor** | Monaco panel with Mermaid syntax highlighting & error squiggles, 300ms two-way sync |
+| **View modes** | Executive (simplified) ⇄ Engineering (full detail) with per-diagram persistence |
+| **AI copilot** | Streaming chat, node-targeted edits ("Make User inherit from Account"), architecture critic, design-doc generation |
+| **Scope wizard** | Paste requirements → entity extraction preview → toggle scope → generate |
+| **Validation** | 7-rule 100-point checklist: inheritance cycles, god classes, detached nodes, naming… |
+| **Analysis** | Coupling (afferent/efferent), cycles (graph DFS), missing abstraction insights + refactorings |
+| **GitHub & DB** | OAuth connect, webhook-driven sync, SQL reflection → Crow's Foot ER | 
+| **Codegen** | TypeScript / Java / Python / C# with Lombok, Pydantic, decorators, getters/setters |
+| **Export** | SVG, PNG (2x/4x), PDF, PlantUML, Mermaid, JSON — validation-gated |
+
+## 🚀 Quick start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# open http://localhost:3000 — sign in with "Demo access"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🔑 Configuration
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy `.env.example` → `.env`. The app **always works**; env vars upgrade the stack:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+# AI (either provider is enough; both → primary + fallback)
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
 
-## Learn More
+# OAuth (buttons appear automatically once set)
+GITHUB_CLIENT_ID=...    GITHUB_CLIENT_SECRET=...
+GOOGLE_CLIENT_ID=...    GOOGLE_CLIENT_SECRET=...
+NEXTAUTH_SECRET=...     NEXTAUTH_URL=http://localhost:3000
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 🐳 Docker
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+docker compose up --build
+# app on :3000, PostgreSQL 15 + Redis 7 bundled
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📜 Scripts
 
-## Deploy on Vercel
+```bash
+npm run dev          # local dev
+npm run build        # production build (standalone output)
+npm run start        # serve production build
+npm run lint         # ESLint (next/core-web-vitals + react)
+npm run typecheck    # tsc --noEmit (strict, zero `any`)
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🗄️ Going to production — PostgreSQL
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The app ships with a **two-mode storage layer** (`lib/data/storage.ts`):
+
+| Mode | When | Persistence |
+| --- | --- | --- |
+| `local` (default) | `NEXT_PUBLIC_DATA_MODE` unset | localStorage (zero-infra demo) |
+| `db` | `NEXT_PUBLIC_DATA_MODE=db` | PostgreSQL via Prisma → `/api/storage` |
+
+Both modes share the same async storage API, so no feature code changes when you switch. The
+Prisma repository (`lib/data/repository.ts`) is the server-side source of truth: projects,
+diagrams, version history, change log, prompt history and validation reports.
+
+```bash
+# 1. Point PostgreSQL 15 at a host you control (or `docker compose up -d db`)
+# 2. Set DATABASE_URL and NEXT_PUBLIC_DATA_MODE=db in .env, then BUILD:
+npm run db:migrate        # applies migrations
+npm run db:seed           # optional demo user + Auth Service project
+npm run build && npm run start
+```
+
+> `NEXT_PUBLIC_*` values are inlined at **build time**, so set
+> `NEXT_PUBLIC_DATA_MODE=db` before `npm run build`. In dev (`npm run dev`) it's
+> read live from `.env`.
+
+Production deploys run `npm run db:deploy` instead of `db:migrate`. Migrations live in
+`prisma/migrations/`. Redis + BullMQ wirepoints exist for GitHub webhooks and DB reflection
+jobs (`docker-compose.yml` includes both services).
+
+## 🔬 Where the intelligence lives
+
+| Path | Purpose |
+| --- | --- |
+| `lib/mermaid/parser.ts` | `classDiagram` → typed `UMLModel` AST |
+| `lib/mermaid/transformer.ts` | AST ↔ ReactFlow nodes/edges (dagre layout) |
+| `lib/mermaid/validator.ts` | 7-rule validation + 100-point scoring |
+| `lib/analysis/critic.ts` | coupling, cycles, god classes, insights |
+| `lib/ai/mock-engine.ts` | offline extraction (entities/methods/attributes/relations) |
+| `lib/ai/transforms.ts` | prompt → model transformation pipeline |
+| `app/api/ai/chat/route.ts` | SSE streaming route (AI provider or offline engine) |
+
+## ♿ Accessibility & performance
+
+WCAG 2.1 AA: full keyboard nav, focus rings, ARIA labels, reduced-motion support. Performance:
+lazy-loaded Monaco/Mermaid/ReactFlow, debounced sync (300ms), viewport-optimum canVas, 0-animation
+priority safelist — see `next.config.mjs`.
+
+---
+
+Built with Next.js 14, TypeScript (strict), Tailwind, Framer Motion, ReactFlow, Mermaid, Monaco,
+Zustand, React Query and the Vercel AI SDK.

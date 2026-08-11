@@ -1,0 +1,212 @@
+"use client";
+
+import * as React from "react";
+import { AnimatePresence } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import { Navbar } from "@/components/layout/navbar";
+import { CommandPalette } from "@/components/layout/command-palette";
+import { Toolbar } from "@/components/editor/toolbar";
+import { Canvas } from "@/components/editor/canvas";
+import { PaletteSidebar } from "@/components/editor/palette-sidebar";
+import { PropertiesPanel } from "@/components/editor/properties-panel";
+import { MonacoPanel } from "@/components/editor/monaco-panel";
+import { AISidebar } from "@/components/editor/ai-sidebar";
+import { ValidationPanel } from "@/components/editor/validation-panel";
+import { AnalysisOverlay } from "@/components/editor/analysis-overlay";
+import { CodeGenModal } from "@/components/editor/codegen-modal";
+import { DocsModal } from "@/components/editor/docs-modal";
+import { MermaidRenderer } from "@/components/editor/mermaid-renderer";
+import { VersionHistoryModal } from "@/components/editor/version-history-modal";
+import { useDiagram, useEditorUI } from "@/hooks/useDiagram";
+import { exportDiagram, type ExportFormat } from "@/lib/export/engine";
+import { storage } from "@/lib/data/storage";
+import { toast } from "@/components/ui/toast";
+import { useRouter } from "next/navigation";
+import { isMermaidModelType } from "@/lib/mermaid/parser";
+
+export function EditorShell({ diagramId }: { diagramId: string }): React.ReactElement | null {
+  const router = useRouter();
+  const engine = useDiagram(diagramId);
+  const ui = useEditorUI();
+  const canvasRef = React.useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = React.useState<ExportFormat | null>(null);
+  const [overrideBlock, setOverrideBlock] = React.useState(false);
+  const [paletteOpen, setPaletteOpen] = React.useState(true);
+
+  React.useEffect(() => {
+    const handleNew = (): void => {
+      router.push("/dashboard?new=1");
+    };
+    window.addEventListener("archvision:new-diagram", handleNew);
+    const listeners: Array<[string, () => void]> = [
+      ["archvision:toggle-code", () => ui.setCodePanelOpen(!ui.codePanelOpen)],
+      ["archvision:ai-sidebar", () => ui.setSidePanel(ui.sidePanel === "ai" ? null : "ai")],
+      ["archvision:validate", () => ui.setSidePanel("validation")],
+      ["archvision:analyze", () => ui.setAnalysisOpen(true)],
+      ["archvision:docs", () => ui.setDocsOpen(true)],
+      ["archvision:codegen", () => ui.setCodeGenOpen(true)],
+      ["archvision:export", () => window.dispatchEvent(new CustomEvent("archvision:export-menu"))],
+    ];
+    listeners.forEach(([name, fn]) => window.addEventListener(name, fn));
+    return () => {
+      window.removeEventListener("archvision:new-diagram", handleNew);
+      listeners.forEach(([name, fn]) => window.removeEventListener(name, fn));
+    };
+  }, [ui, router]);
+
+  const handleExport = async (format: string): Promise<void> => {
+    const criticals = engine.validation?.issues.filter((i) => i.severity === "critical").length ?? 0;
+    if (criticals > 0 && !overrideBlock && format !== "json" && format !== "mermaid") {
+      const proceed = window.confirm(
+        `The diagram has ${criticals} critical validation issue(s). Export anyway?`
+      );
+      if (!proceed) return;
+      setOverrideBlock(true);
+    }
+    const container = canvasRef.current;
+    if (!container) return;
+    setExporting(format as ExportFormat);
+    try {
+      await exportDiagram(format as ExportFormat, container, engine.model, {
+        filename: `${engine.name.replace(/\s+/g, "-").toLowerCase()}`,
+      });
+      await storage.saveValidation(diagramId, engine.validation ?? { issues: [], score: 100 });
+    } catch (err) {
+      console.error("Export failed", err);
+      toast("error", err instanceof Error ? `Export failed: ${err.message}` : "Export failed");
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  if (!engine.ready) {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+          <p className="mt-3 text-sm font-bold text-foreground">Loading diagram…</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (engine.missing) {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <p className="text-sm font-bold text-foreground">Diagram not found</p>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="mt-3 text-[13px] font-semibold text-primary hover:underline"
+          >
+            Back to dashboard
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  const isClassModel = isMermaidModelType(engine.mermaidCode);
+
+  return (
+    <main className="flex h-screen flex-col overflow-hidden bg-white">
+      <div className="shrink-0">
+        <Navbar />
+        <div className="pt-16">
+          <Toolbar
+            diagramName={engine.name}
+            diagramType={engine.type}
+            viewMode={engine.viewMode}
+            onViewModeChange={engine.setViewMode}
+            validationScore={engine.validation?.score ?? null}
+            isValid={engine.validation?.issues.every((i) => i.severity !== "critical") ?? false}
+            onExport={(f) => void handleExport(f)}
+            codePanelOpen={ui.codePanelOpen}
+            onToggleCodePanel={() => ui.setCodePanelOpen(!ui.codePanelOpen)}
+          />
+        </div>
+      </div>
+
+      <div className="flex min-h-0 flex-1">
+        <div className="relative min-w-0 flex-1 bg-[radial-gradient(circle_at_1px_1px,rgba(15,23,42,0.08)_1px,transparent_0)] bg-[size:24px_24px]">
+          {isClassModel ? (
+            <Canvas diagramId={diagramId} engine={engine} />
+          ) : (
+            <div className="h-full">
+              <MermaidRenderer code={engine.mermaidCode} />
+            </div>
+          )}
+
+          {isClassModel ? <PaletteSidebar open={paletteOpen} onClose={() => setPaletteOpen(false)} /> : null}
+          {isClassModel ? <PropertiesPanel engine={engine} /> : null}
+
+          <div ref={canvasRef} data-mermaid-code={engine.mermaidCode} className="hidden">
+            <MermaidRenderer code={engine.mermaidCode} fit={false} />
+          </div>
+
+          {engine.isSyncing ? (
+            <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-2 rounded-pill border border-line bg-white/90 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground shadow-card backdrop-blur">
+              <Loader2 className="h-3 w-3 animate-spin text-primary" />
+              syncing…
+            </div>
+          ) : null}
+
+          {exporting ? (
+            <div className="pointer-events-none absolute bottom-4 right-4 flex items-center gap-2 rounded-pill border border-line bg-white/90 px-4 py-2 text-[12px] font-semibold text-foreground shadow-panel-float backdrop-blur">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+              Exporting {exporting.toUpperCase()}…
+            </div>
+          ) : null}
+        </div>
+
+        <AnimatePresence>
+          {ui.codePanelOpen ? (
+            <MonacoPanel
+              value={engine.mermaidCode}
+              onChange={engine.setMermaidCode}
+              error={engine.parseError}
+              open
+              onClose={() => ui.setCodePanelOpen(false)}
+            />
+          ) : null}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {ui.sidePanel === "ai" ? (
+            <AISidebar engine={engine} open onClose={() => ui.setSidePanel(null)} />
+          ) : null}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {ui.sidePanel === "validation" ? (
+            <ValidationPanel
+              result={engine.validation}
+              open
+              onClose={() => ui.setSidePanel(null)}
+            />
+          ) : null}
+        </AnimatePresence>
+      </div>
+
+      <AnalysisOverlay open={ui.analysisOpen} onClose={() => ui.setAnalysisOpen(false)} model={engine.model} />
+      <CodeGenModal open={ui.codeGenOpen} onOpenChange={ui.setCodeGenOpen} model={engine.model} />
+      <DocsModal
+        open={ui.docsOpen}
+        onOpenChange={ui.setDocsOpen}
+        mermaidCode={engine.mermaidCode}
+        diagramName={engine.name}
+        architecture={engine.architecture}
+      />
+      <VersionHistoryModal
+        open={ui.versionOpen}
+        onOpenChange={ui.setVersionOpen}
+        versions={engine.versions}
+        onSaveNow={(label) => engine.saveVersionNow(label)}
+        onRestore={(version) => engine.restoreVersion(version)}
+        onCloseAfterRestore={() => ui.setVersionOpen(false)}
+      />
+      <CommandPalette />
+    </main>
+  );
+}

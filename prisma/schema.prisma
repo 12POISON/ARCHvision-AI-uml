@@ -1,0 +1,181 @@
+// ArchVision AI — production schema (PostgreSQL 15+)
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma/client"
+  runtime  = "nodejs"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  projects      Project[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Project {
+  id              String    @id @default(cuid())
+  name            String
+  description     String?
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  githubRepo      String?
+  githubBranch    String    @default("main")
+  githubToken     String? // AES-256-GCM encrypted
+  dbConnection    String? // AES-256-GCM encrypted JSON payload
+  lastSyncedAt    DateTime?
+  syncing         Boolean   @default(false)
+  diagrams        Diagram[]
+  syncJobs        SyncJob[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Diagram {
+  id               String              @id @default(cuid())
+  name             String
+  type             DiagramType
+  projectId        String
+  project          Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mermaidCode      String              @db.Text
+  plantUmlCode     String?             @db.Text
+  reactFlowNodes   Json?
+  reactFlowEdges   Json?
+  metadata         Json?
+  viewMode         ViewMode            @default(ENGINEERING)
+  isValid          Boolean             @default(false)
+  validationScore  Int?
+  promptHistory    PromptHistory[]
+  validationReports ValidationReport[]
+  exports          Export[]
+  versions         DiagramVersion[]
+  changeLog        DiagramChangeLog[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+}
+
+model PromptHistory {
+  id          String   @id @default(cuid())
+  diagramId   String
+  diagram     Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  prompt      String   @db.Text
+  response    String   @db.Text
+  actionType  String // generate | transform | analyze | explain
+  createdAt   DateTime @default(now())
+}
+
+model ValidationReport {
+  id        String   @id @default(cuid())
+  diagramId String
+  diagram   Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  issues    Json // [{severity, message, rule, line?}]
+  score     Int
+  createdAt DateTime @default(now())
+}
+
+model SyncJob {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  status      JobStatus @default(PENDING)
+  type        String // github_push | db_reflect
+  log         String?   @db.Text
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model Export {
+  id        String   @id @default(cuid())
+  diagramId String
+  diagram   Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  format    String // svg | png | pdf | plantuml | mermaid | json | typescript | java | python | csharp
+  url       String
+  createdAt DateTime @default(now())
+}
+
+model DiagramVersion {
+  id          String   @id @default(cuid())
+  diagramId   String
+  diagram     Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  version     Int
+  label       String
+  mermaidCode String   @db.Text
+  summary     String   @db.Text
+  changes     Json // string[] — human change notes for this snapshot
+  createdAt   DateTime @default(now())
+
+  @@index([diagramId, version])
+}
+
+model DiagramChangeLog {
+  id        String   @id @default(cuid())
+  diagramId String
+  diagram   Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  summary   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([diagramId])
+}
+
+enum DiagramType {
+  CLASS
+  SEQUENCE
+  USE_CASE
+  STATE
+  ACTIVITY
+  COMPONENT
+  DEPLOYMENT
+  ER
+  PACKAGE
+}
+
+enum ViewMode {
+  EXECUTIVE
+  ENGINEERING
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
