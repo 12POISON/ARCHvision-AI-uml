@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "ArchVision AI — Automatic UML Diagram Generator",
     template: "%s · ArchVision AI",
@@ -23,7 +25,29 @@ export const metadata: Metadata = {
     description:
       "Turn words, code and schemas into production-ready UML diagrams. AI-powered editing, validation and code generation.",
     type: "website",
+    url: SITE_URL,
+    siteName: "ArchVision AI",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "ArchVision AI — Turn words into production-ready UML diagrams",
+      },
+    ],
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "ArchVision AI — Automatic UML Diagram Generator",
+    description:
+      "Turn words, code and schemas into production-ready UML diagrams. AI-powered editing, validation and code generation.",
+    images: ["/og-image.png"],
+  },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/icon-192.png",
+  },
+  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {

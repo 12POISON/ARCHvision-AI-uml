@@ -1,11 +1,12 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { motion } from "framer-motion";
-import { Boxes, FolderKanban, LayoutGrid, Search, Settings, Sparkles, User } from "lucide-react";
+import { Boxes, FolderKanban, LayoutGrid, Search, Settings, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown";
+
+/** Subset of the NextAuth session user used by the shell. */
+export interface NavUser {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+}
+
+function initialsOf(user: NavUser | null | undefined): string {
+  if (!user) return "?";
+  if (user.name) {
+    const parts = user.name.trim().split(/\s+/).filter(Boolean);
+    return (parts[0]?.[0] ?? "").toUpperCase() + (parts[1]?.[0] ?? "").toUpperCase();
+  }
+  return (user.email?.[0] ?? "?").toUpperCase();
+}
 
 export function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }): React.ReactElement {
   const sizes = { sm: "h-7 w-7", md: "h-8 w-8", lg: "h-10 w-10" };
@@ -36,7 +53,7 @@ export function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }): React.Reac
   );
 }
 
-export function Navbar(): React.ReactElement {
+export function Navbar({ user }: { user?: NavUser | null } = {}): React.ReactElement {
   const pathname = usePathname();
   const [scrolled, setScrolled] = React.useState(false);
   const [hash, setHash] = React.useState("");
@@ -124,13 +141,13 @@ export function Navbar(): React.ReactElement {
             aria-label="Open command palette"
           >
             <Search className="h-3.5 w-3.5" />
-            <span>Search…</span>
+            <span>Searchâ€¦</span>
             <kbd className="ml-4 rounded-md border border-line bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-              ⌘K
+              âŒ˜K
             </kbd>
           </button>
           {isApp ? (
-            <UserMenu />
+            <UserMenu user={user} />
           ) : (
             <div className="flex items-center gap-2">
               <Link href="/login">
@@ -139,7 +156,7 @@ export function Navbar(): React.ReactElement {
               <Link href="/register">
                 <Button size="sm">
                   <Sparkles className="h-3.5 w-3.5" />
-                  Try free
+                  Get started
                 </Button>
               </Link>
             </div>
@@ -150,21 +167,39 @@ export function Navbar(): React.ReactElement {
   );
 }
 
-function UserMenu(): React.ReactElement {
+function UserMenu({ user }: { user?: NavUser | null }): React.ReactElement {
   const router = useRouter();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-slate-500 transition-all duration-300 hover:border-primary/40 hover:text-primary"
-          aria-label="Account menu"
+          className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-line bg-white text-slate-500 transition-all duration-300 hover:border-primary/40 hover:text-primary"
+          aria-label={user?.name ? `Account menu for ${user.name}` : "Account menu"}
         >
-          <User className="h-4 w-4" />
+          {user?.image ? (
+            <Image
+              src={user.image}
+              alt={user.name ?? "Account avatar"}
+              width={36}
+              height={36}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center bg-primary/10 text-[12px] font-extrabold text-primary">
+              {initialsOf(user)}
+            </span>
+          )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuLabel>Workspace</DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="flex flex-col gap-0.5 py-2">
+          <span className="truncate text-sm font-bold text-foreground">{user?.name ?? "Guest"}</span>
+          {user?.email ? (
+            <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+          ) : null}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/dashboard")}>
           <LayoutGrid className="h-4 w-4" /> Dashboard
         </DropdownMenuItem>

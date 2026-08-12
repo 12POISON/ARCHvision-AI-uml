@@ -317,7 +317,7 @@ function localListChanges(diagramId: string, limit = 30): Array<{ at: string; su
 /* -------------------------------- facade -------------------------------- */
 
 export const storage = {
-  storageMode: (): string => (DB_MODE && dbAvailable ? "db" : "local"),
+  storageMode: (): "db" | "local" => (DB_MODE && dbAvailable ? "db" : "local"),
 
   async listProjects(): Promise<Project[]> {
     if (DB_MODE && (await checkDbHealth())) return callDb("listProjects");

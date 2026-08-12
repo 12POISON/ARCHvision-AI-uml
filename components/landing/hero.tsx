@@ -72,7 +72,7 @@ export function Hero({ authed = false }: { authed?: boolean }): React.ReactEleme
             <Link href={authed ? "/dashboard" : "/register"}>
               <Button size="lg" className="w-full sm:w-auto">
                 <Wand2 className="h-4 w-4" />
-                {authed ? "Open your workspace" : "Start building free"}
+                {authed ? "Open your workspace" : "Start building"}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>

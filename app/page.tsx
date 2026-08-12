@@ -11,7 +11,7 @@ export default async function LandingPage(): Promise<React.ReactElement> {
   const session = await auth();
   return (
     <main>
-      <Navbar />
+      <Navbar user={session?.user} />
       <CommandPalette />
       <Hero authed={Boolean(session?.user)} />
       <Workflow />

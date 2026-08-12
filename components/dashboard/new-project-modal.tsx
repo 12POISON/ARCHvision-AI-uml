@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { FolderPlus, Globe, Loader2, Lock, Users } from "lucide-react";
+import { FolderPlus, Loader2, Lock } from "lucide-react";
 import {
   Modal,
   ModalContent,
@@ -27,20 +27,8 @@ const VISIBILITY_OPTIONS = [
   {
     value: "private",
     label: "Private",
-    description: "Only you and invited members can view",
+    description: "Only visible to your account",
     icon: <Lock className="h-3.5 w-3.5" />,
-  },
-  {
-    value: "team",
-    label: "Team",
-    description: "Visible to everyone in your workspace",
-    icon: <Users className="h-3.5 w-3.5" />,
-  },
-  {
-    value: "public",
-    label: "Public",
-    description: "Anyone with the link can view",
-    icon: <Globe className="h-3.5 w-3.5" />,
   },
 ] as const;
 
@@ -80,7 +68,8 @@ export function NewProjectModal({ open, onOpenChange }: NewProjectModalProps): R
         <ModalHeader>
           <ModalTitle>Create a project</ModalTitle>
           <ModalDescription>
-            Projects (workspaces) group related diagrams, members and shared settings.
+            Projects group related diagrams into one workspace. Projects are private to your account —
+            team sharing is on the roadmap.
           </ModalDescription>
         </ModalHeader>
 

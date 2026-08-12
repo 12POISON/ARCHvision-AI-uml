@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { AnimatePresence } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Loader2, Boxes } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/navbar";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { Toolbar } from "@/components/editor/toolbar";
@@ -31,14 +32,65 @@ import { toast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
 import { isMermaidModelType } from "@/lib/mermaid/parser";
 
+const MOBILE_GATE_KEY = "archvision:mobile-editor-ok";
+
+/** SSR-safe "is this a phone-ish viewport?" check. */
+function useNarrowViewport(): boolean {
+  const [narrow, setNarrow] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = (): void => setNarrow(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return narrow;
+}
+
 export type AiMode = "openai" | "anthropic" | "offline";
+
+function MobileEditorGate({
+  onBack,
+  onDismiss,
+}: {
+  onBack: () => void;
+  onDismiss: () => void;
+}): React.ReactElement {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
+      <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-deep text-white shadow-btn-primary">
+        <Boxes className="h-8 w-8" />
+      </span>
+      <h1 className="mt-8 max-w-md text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+        The editor works best on a larger screen
+      </h1>
+      <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
+        Diagramming needs a real canvas. Open ArchVision on a tablet or desktop for the full
+        experience — your diagrams are safe and will be waiting for you.
+      </p>
+      <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
+        <Button size="lg" onClick={onBack}>
+          Back to dashboard
+        </Button>
+        <Button size="lg" variant="outline" onClick={onDismiss}>
+          Continue anyway
+        </Button>
+      </div>
+      <p className="mt-6 max-w-sm text-xs leading-relaxed text-muted-foreground">
+        The editor isn&apos;t optimized for phone screens — panels and controls may be hard to use.
+      </p>
+    </main>
+  );
+}
 
 export function EditorShell({
   diagramId,
   aiMode,
+  user,
 }: {
   diagramId: string;
   aiMode: AiMode;
+  user: { name?: string | null; email?: string | null; image?: string | null };
 }): React.ReactElement | null {
   const router = useRouter();
   const engine = useDiagram(diagramId);
@@ -50,6 +102,11 @@ export function EditorShell({
   const commentCount = useCommentsStore((s) => s.comments[diagramId]?.length ?? 0);
 
   useEditorShortcuts(engine);
+
+  const narrow = useNarrowViewport();
+  const [mobileDismissed, setMobileDismissed] = React.useState<boolean>(() =>
+    typeof window !== "undefined" && window.sessionStorage.getItem(MOBILE_GATE_KEY) === "1"
+  );
 
   React.useEffect(() => {
     const handleNew = (): void => {
@@ -74,6 +131,22 @@ export function EditorShell({
       listeners.forEach(([name, fn]) => window.removeEventListener(name, fn));
     };
   }, [ui, router]);
+
+  if (narrow && !mobileDismissed) {
+    return (
+      <MobileEditorGate
+        onBack={() => router.push("/dashboard")}
+        onDismiss={() => {
+          try {
+            window.sessionStorage.setItem(MOBILE_GATE_KEY, "1");
+          } catch {
+            /* sessionStorage unavailable — dismiss for this render only */
+          }
+          setMobileDismissed(true);
+        }}
+      />
+    );
+  }
 
   const handleExport = async (format: string): Promise<void> => {
     const criticals = engine.validation?.issues.filter((i) => i.severity === "critical").length ?? 0;
@@ -133,7 +206,7 @@ export function EditorShell({
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-white">
       <div className="shrink-0">
-        <Navbar />
+        <Navbar user={user} />
         <div className="pt-16">
           <Toolbar
             diagramName={engine.name}
@@ -260,7 +333,6 @@ export function EditorShell({
       <ShareModal
         open={ui.shareOpen}
         onOpenChange={ui.setShareOpen}
-        diagramId={diagramId}
         diagramName={engine.name}
       />
       <CheatSheetModal open={ui.cheatSheetOpen} onOpenChange={ui.setCheatSheetOpen} />

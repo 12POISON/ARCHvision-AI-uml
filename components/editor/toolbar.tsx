@@ -147,7 +147,7 @@ export function Toolbar({
   );
 
   return (
-    <div className="flex h-12 select-none items-center justify-between border-b border-gray-200 bg-white px-4">
+    <div className="flex h-12 select-none items-center justify-between gap-2 overflow-x-auto border-b border-gray-200 bg-white px-4">
       {/* LEFT ZONE — back, diagram identity, File/Edit/View/Arrange */}
       <div className="flex min-w-0 items-center gap-3">
         <button

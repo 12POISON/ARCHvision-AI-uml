@@ -28,7 +28,7 @@ export default async function ProjectsPage(): Promise<React.ReactElement> {
 
   return (
     <main className="min-h-screen bg-white">
-      <Navbar />
+      <Navbar user={session.user} />
       <CommandPalette />
       <div className="mx-auto max-w-7xl px-4 pb-24 pt-28 sm:px-6 lg:px-8">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">

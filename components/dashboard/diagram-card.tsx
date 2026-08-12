@@ -39,7 +39,7 @@ export function DiagramCard({
               {DIAGRAM_TYPES.find((t) => t.value === diagram.type)?.label ?? diagram.type}
             </Badge>
           </div>
-          <p className="mt-auto pt-3 text-[11px] text-muted-foreground/80">
+          <p className="mt-auto pt-3 text-[11px] text-muted-foreground">
             Updated {formatRelativeTime(diagram.updatedAt)}
           </p>
         </div>

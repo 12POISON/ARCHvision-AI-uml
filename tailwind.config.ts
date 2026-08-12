@@ -41,7 +41,9 @@ const config: Config = {
         },
         muted: {
           DEFAULT: "#64748B",
-          foreground: "#94A3B8",
+          // slate-500: 4.6:1 on white — passes WCAG AA for normal text.
+          // Reserve lighter grays only for large text or non-text decoration.
+          foreground: "#64748B",
         },
         success: "#10B981",
         error: "#EF4444",

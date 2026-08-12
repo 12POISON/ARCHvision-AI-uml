@@ -19,7 +19,7 @@ export default async function SettingsPage(): Promise<React.ReactElement> {
 
   return (
     <main className="min-h-screen bg-white">
-      <Navbar />
+      <Navbar user={user} />
       <CommandPalette />
       <div className="mx-auto max-w-7xl px-4 pb-24 pt-28 sm:px-6 lg:px-8">
         <Link

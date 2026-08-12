@@ -32,7 +32,7 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
 
   return (
     <main className="min-h-screen bg-white">
-      <Navbar />
+      <Navbar user={session.user} />
       <CommandPalette />
       <DashboardView user={session.user} projects={projects} diagrams={diagrams} />
     </main>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Boxes } from "lucide-react";
-import { GithubIcon, XSocialIcon } from "@/components/ui/brand-icons";
+import { GithubIcon } from "@/components/ui/brand-icons";
+import { PROJECT_REPO_URL } from "@/lib/site";
 
 export function Footer(): React.ReactElement {
   return (
@@ -19,17 +20,23 @@ export function Footer(): React.ReactElement {
           <Link href="/#workflow" className="transition-colors hover:text-foreground">Workflow</Link>
           <Link href="/#ai" className="transition-colors hover:text-foreground">AI Engine</Link>
           <Link href="/dashboard" className="transition-colors hover:text-foreground">Dashboard</Link>
+          <Link href="/privacy" className="transition-colors hover:text-foreground">Privacy</Link>
+          <Link href="/terms" className="transition-colors hover:text-foreground">Terms</Link>
+          <Link href="/contact" className="transition-colors hover:text-foreground">Contact</Link>
         </nav>
         <div className="flex items-center gap-4 text-muted-foreground">
-          <a href="https://github.com" target="_blank" rel="noreferrer" aria-label="GitHub" className="transition-colors hover:text-foreground">
+          <a
+            href={PROJECT_REPO_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="ArchVision AI on GitHub"
+            className="transition-colors hover:text-foreground"
+          >
             <GithubIcon className="h-4.5 w-4.5" />
-          </a>
-          <a href="https://x.com" target="_blank" rel="noreferrer" aria-label="X" className="transition-colors hover:text-foreground">
-            <XSocialIcon className="h-4 w-4" />
           </a>
         </div>
       </div>
-      <p className="mt-10 text-center text-xs text-muted-foreground/70">
+      <p className="mt-10 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()} ArchVision AI. Diagrams your architecture can finally be proud of.
       </p>
     </footer>

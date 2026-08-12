@@ -2,32 +2,36 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Activity, Boxes, FileCode2, GitBranch, type LucideIcon } from "lucide-react";
+import { Boxes, Database, FileCode2, GitBranch, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Stat {
   icon: LucideIcon;
   label: string;
-  value: number;
-  delta: string;
+  value: number | string;
+  note: string;
   gradient: string;
 }
 
 interface StatsBarProps {
   diagrams: number;
   projects: number;
-  classes: number;
-  methods: number;
+  templates: number;
+  storageMode: "local" | "db";
 }
 
-const DELTAS = ["+12% this week", "+2 new", "+38 members", "+120 methods"];
-
-export function StatsBar({ diagrams, projects, classes, methods }: StatsBarProps): React.ReactElement {
+export function StatsBar({ diagrams, projects, templates, storageMode }: StatsBarProps): React.ReactElement {
   const stats: Stat[] = [
-    { icon: Boxes, label: "Diagrams", value: diagrams, delta: DELTAS[0], gradient: "from-blue-600 to-blue-800" },
-    { icon: GitBranch, label: "Projects", value: projects, delta: DELTAS[1], gradient: "from-indigo-500 to-indigo-700" },
-    { icon: Activity, label: "Classes modeled", value: classes, delta: DELTAS[2], gradient: "from-emerald-500 to-emerald-700" },
-    { icon: FileCode2, label: "Exports", value: methods, delta: DELTAS[3], gradient: "from-amber-400 to-amber-600" },
+    { icon: Boxes, label: "Diagrams", value: diagrams, note: "in your workspace", gradient: "from-blue-600 to-blue-800" },
+    { icon: GitBranch, label: "Projects", value: projects, note: "across your workspace", gradient: "from-indigo-500 to-indigo-700" },
+    { icon: FileCode2, label: "Templates", value: templates, note: "ready to start from", gradient: "from-emerald-500 to-emerald-700" },
+    {
+      icon: Database,
+      label: "Storage",
+      value: storageMode === "db" ? "Server" : "Browser",
+      note: storageMode === "db" ? "PostgreSQL — saved server-side" : "local-only — saved on this device",
+      gradient: "from-amber-400 to-amber-600",
+    },
   ];
 
   return (
@@ -52,7 +56,7 @@ export function StatsBar({ diagrams, projects, classes, methods }: StatsBarProps
             <stat.icon className="h-4 w-4 text-slate-300" />
           </div>
           <p className="mt-2 text-3xl font-extrabold tracking-tight text-foreground">{stat.value}</p>
-          <p className="mt-1 text-[11.5px] font-medium text-success">{stat.delta}</p>
+          <p className="mt-1 text-[11.5px] font-medium text-muted-foreground">{stat.note}</p>
         </motion.div>
       ))}
     </div>

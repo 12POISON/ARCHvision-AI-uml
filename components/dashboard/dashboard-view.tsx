@@ -10,8 +10,11 @@ import { NewDiagramModal } from "@/components/dashboard/new-diagram-modal";
 import { NewProjectModal } from "@/components/dashboard/new-project-modal";
 import { NewProjectCard } from "@/components/dashboard/project-card";
 import { DiagramCard } from "@/components/dashboard/diagram-card";
+import { FirstRunOnboarding } from "@/components/dashboard/first-run";
 import { Button } from "@/components/ui/button";
 import type { Diagram, Project } from "@/types/diagram";
+import { TEMPLATES } from "@/lib/architecture/templates";
+import { storage } from "@/lib/data/storage";
 
 interface DashboardViewProps {
   user: { name?: string | null };
@@ -64,7 +67,6 @@ export function DashboardView({ user, projects, diagrams }: DashboardViewProps):
     .slice(0, 4);
 
   const totalDiagrams = diagrams.length;
-  const totalClasses = diagrams.length * 4;
   const userName = user?.name?.split(" ")[0] ?? "Explorer";
 
   return (
@@ -98,7 +100,12 @@ export function DashboardView({ user, projects, diagrams }: DashboardViewProps):
       </motion.div>
 
       <div className="mb-12">
-        <StatsBar diagrams={totalDiagrams} projects={projects.length} classes={totalClasses} methods={8} />
+        <StatsBar
+          diagrams={totalDiagrams}
+          projects={projects.length}
+          templates={TEMPLATES.length}
+          storageMode={storage.storageMode()}
+        />
       </div>
 
       <div className="mb-4 grid gap-5 sm:grid-cols-2">
@@ -132,30 +139,20 @@ export function DashboardView({ user, projects, diagrams }: DashboardViewProps):
         </button>
       </div>
 
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-lg font-extrabold tracking-tight text-foreground">Recent diagrams</h2>
-        <p className="text-[13px] text-muted-foreground">{recentDiagrams.length} shown</p>
-      </div>
-
-      {recentDiagrams.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
-          <h3 className="text-lg font-extrabold tracking-tight text-foreground">No diagrams yet. Create your first.</h3>
-          <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">
-            Paste a vision in plain language and the AI engine turns it into architecture.
-          </p>
-          <div className="mt-6">
-            <Button onClick={() => setModalOpen(true)}>
-              <FilePlus2 className="h-4 w-4" />
-              Create your first diagram
-            </Button>
-          </div>
-        </div>
+      {totalDiagrams === 0 ? (
+        <FirstRunOnboarding projects={projects} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {recentDiagrams.map((diagram, index) => (
-            <DiagramCard key={diagram.id} diagram={diagram} index={index} />
-          ))}
-        </div>
+        <>
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Recent diagrams</h2>
+            <p className="text-[13px] text-muted-foreground">{recentDiagrams.length} shown</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {recentDiagrams.map((diagram, index) => (
+              <DiagramCard key={diagram.id} diagram={diagram} index={index} />
+            ))}
+          </div>
+        </>
       )}
 
       <div className="mb-6 mt-12 flex items-center justify-between">

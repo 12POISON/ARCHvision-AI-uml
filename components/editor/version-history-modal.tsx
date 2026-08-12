@@ -6,6 +6,7 @@ import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from "
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import type { DiagramVersion } from "@/lib/architecture/versions";
+import { storage } from "@/lib/data/storage";
 
 interface VersionHistoryModalProps {
   open: boolean;
@@ -25,6 +26,7 @@ export function VersionHistoryModal({
   onCloseAfterRestore,
 }: VersionHistoryModalProps): React.ReactElement {
   const [label, setLabel] = React.useState("");
+  const localOnly = storage.storageMode() === "local";
 
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
@@ -38,6 +40,13 @@ export function VersionHistoryModal({
             Immutable snapshots of this diagram. Restoring swaps the model back — a new entry records the rollback.
           </ModalDescription>
         </ModalHeader>
+
+        {localOnly ? (
+          <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[12px] leading-relaxed text-amber-800">
+            Snapshots are stored only in this browser. Clearing site data or switching devices will
+            remove them — keep durable exports if you need them long-term.
+          </p>
+        ) : null}
 
         <div className="max-h-[52vh] space-y-3 overflow-y-auto pr-1">
           {versions.length === 0 ? (

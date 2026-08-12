@@ -29,8 +29,15 @@ export default async function RegisterPage(): Promise<React.ReactElement> {
             hasGoogle={Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)}
           />
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            By continuing you agree to the <span className="font-medium text-slate-500">Terms</span> and{" "}
-            <span className="font-medium text-slate-500">Privacy Policy</span>. No credit card required for demo access.
+            By continuing you agree to the{" "}
+            <Link href="/terms" className="font-medium text-slate-500 underline-offset-2 hover:underline">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="font-medium text-slate-500 underline-offset-2 hover:underline">
+              Privacy Policy
+            </Link>
+            . No credit card required for demo access.
           </p>
         </div>
         <p className="mt-6 text-center text-sm text-muted-foreground">

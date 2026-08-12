@@ -60,7 +60,7 @@ export function AISection(): React.ReactElement {
 
             <Link href="/login" className="mt-9 inline-block">
               <Button size="lg">
-                Start building free
+                Start building
                 <GitBranch className="ml-1 h-4 w-4" />
               </Button>
             </Link>
