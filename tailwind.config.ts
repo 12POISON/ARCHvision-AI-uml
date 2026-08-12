@@ -45,7 +45,8 @@ const config: Config = {
         },
         success: "#10B981",
         error: "#EF4444",
-        warning: "#FBBF24",
+        // Deliberately distinct from accent (#FBBF24 amber): saturated orange.
+        warning: "#F97316",
         glass: "rgba(255,255,255,0.92)",
       },
       fontFamily: {

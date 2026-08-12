@@ -17,10 +17,14 @@ import type { DiagramEngine } from "@/hooks/useDiagram";
 import { storage } from "@/lib/data/storage";
 import { generateId } from "@/lib/utils";
 
+export type AiMode = "openai" | "anthropic" | "offline";
+
 interface AISidebarProps {
   engine: DiagramEngine;
   open: boolean;
   onClose: () => void;
+  /** Server-rendered provider mode (request-time, mirrors the chat route). */
+  mode: AiMode;
 }
 
 const SUGGESTIONS = [
@@ -33,7 +37,7 @@ const SUGGESTIONS = [
 type SuggestionAction = (typeof SUGGESTIONS)[number]["action"] | "why";
 type Suggestion = (typeof SUGGESTIONS)[number];
 
-export function AISidebar({ engine, open, onClose }: AISidebarProps): React.ReactElement | null {
+export function AISidebar({ engine, open, onClose, mode }: AISidebarProps): React.ReactElement | null {
   const { streaming, error, fallback, stream } = useAIChat();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
@@ -45,11 +49,10 @@ export function AISidebar({ engine, open, onClose }: AISidebarProps): React.Reac
     if (!open) return;
     const arch = engine.architecture;
     if (messages.length === 0) {
-      const provider = process.env.NEXT_PUBLIC_AI_PROVIDER;
       const modeLine =
-        provider === "openai"
+        mode === "openai"
           ? "Provider mode — GPT-4o-mini"
-          : provider === "anthropic"
+          : mode === "anthropic"
             ? "Provider mode — Claude 3.5 Sonnet"
             : "Offline mode — ArchVision local extraction engine active";
       setMessages([
@@ -63,7 +66,7 @@ export function AISidebar({ engine, open, onClose }: AISidebarProps): React.Reac
     }
     const timer = setTimeout(() => inputRef.current?.focus(), 100);
     return () => clearTimeout(timer);
-  }, [open, engine.architecture, engine.name, messages.length]);
+  }, [open, engine.architecture, engine.name, messages.length, mode]);
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });

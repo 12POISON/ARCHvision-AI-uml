@@ -58,7 +58,6 @@ export const ModelName = {
   Diagram: 'Diagram',
   PromptHistory: 'PromptHistory',
   ValidationReport: 'ValidationReport',
-  SyncJob: 'SyncJob',
   Export: 'Export',
   DiagramVersion: 'DiagramVersion',
   DiagramChangeLog: 'DiagramChangeLog'
@@ -128,8 +127,6 @@ export const ProjectScalarFieldEnum = {
   userId: 'userId',
   githubRepo: 'githubRepo',
   githubBranch: 'githubBranch',
-  githubToken: 'githubToken',
-  dbConnection: 'dbConnection',
   lastSyncedAt: 'lastSyncedAt',
   syncing: 'syncing',
   createdAt: 'createdAt',
@@ -180,20 +177,6 @@ export const ValidationReportScalarFieldEnum = {
 } as const
 
 export type ValidationReportScalarFieldEnum = (typeof ValidationReportScalarFieldEnum)[keyof typeof ValidationReportScalarFieldEnum]
-
-
-export const SyncJobScalarFieldEnum = {
-  id: 'id',
-  projectId: 'projectId',
-  status: 'status',
-  type: 'type',
-  log: 'log',
-  startedAt: 'startedAt',
-  completedAt: 'completedAt',
-  createdAt: 'createdAt'
-} as const
-
-export type SyncJobScalarFieldEnum = (typeof SyncJobScalarFieldEnum)[keyof typeof SyncJobScalarFieldEnum]
 
 
 export const ExportScalarFieldEnum = {

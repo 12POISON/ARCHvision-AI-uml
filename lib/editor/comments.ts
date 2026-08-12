@@ -57,7 +57,7 @@ export const useCommentsStore = create<CommentsState & CommentsActions>((set, ge
   focusedId: null,
 
   addComment: (diagramId, comment) => {
-    const id = `c_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+    const id = `c_${crypto.randomUUID().replace(/-/g, "")}`;
     const entry: DiagramComment = { ...comment, diagramId, id, createdAt: Date.now() };
     const next = {
       ...get().comments,

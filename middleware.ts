@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth.config";
 import type { NextAuthRequest } from "next-auth";
+
+// Edge-safe auth wrapper: uses the adapter-free config (JWT session),
+// so the middleware bundle never touches Prisma.
+const { auth } = NextAuth(authConfig);
 
 export default auth((request: NextAuthRequest) => {
   if (!request.auth) {

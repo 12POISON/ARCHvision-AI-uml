@@ -18,7 +18,19 @@ import { generateId } from "@/lib/utils";
  * truth for production: projects, diagrams, versions, change log,
  * prompt history and validation reports. The client storage facade
  * proxies here via /api/storage when NEXT_PUBLIC_DATA_MODE=db.
+ *
+ * Every method takes the authenticated `userId` as its final argument and
+ * scopes all queries to that owner (project.userId / diagram.project.userId).
+ * Ownership is enforced at the query level, never just at the route layer.
  */
+
+/** Thrown when a row does not exist OR does not belong to the caller. Same error for both, so row existence is never leaked. */
+export class NotFoundError extends Error {
+  constructor(message = "Not found or not yours") {
+    super(message);
+    this.name = "NotFoundError";
+  }
+}
 
 const DEMO_USER_ID = "demo-user";
 const DEMO_PROJECT_ID = "project_demo_auth";
@@ -91,6 +103,15 @@ function toClientVersion(row: {
     changes: Array.isArray(row.changes) ? (row.changes as string[]) : [],
     createdAt: row.createdAt.toISOString(),
   };
+}
+
+/** Assert the diagram exists and belongs to the caller; throw NotFoundError otherwise. */
+async function requireOwnedDiagram(diagramId: string, userId: string): Promise<void> {
+  const row = await db.diagram.findFirst({
+    where: { id: diagramId, project: { userId } },
+    select: { id: true },
+  });
+  if (!row) throw new NotFoundError();
 }
 
 /** Ensure the demo owner user + demo project exist (mirror of local seed). */
@@ -176,31 +197,32 @@ async function backfillMissingVersions(): Promise<void> {
 }
 
 export const repository = {
-  async listProjects(): Promise<Project[]> {
+  async listProjects(userId: string): Promise<Project[]> {
     await ensureSeeded();
     const rows = await db.project.findMany({
+      where: { userId },
       orderBy: { updatedAt: "desc" },
       include: { _count: { select: { diagrams: true } } },
     });
     return rows.map(toClientProject);
   },
 
-  async listDiagrams(projectId: string | null = null): Promise<ClientDiagram[]> {
+  async listDiagrams(projectId: string | null, userId: string): Promise<ClientDiagram[]> {
     await ensureSeeded();
     const rows = await db.diagram.findMany({
-      where: projectId ? { projectId } : undefined,
+      where: { projectId: projectId ?? undefined, project: { userId } },
       orderBy: { updatedAt: "desc" },
     });
     return rows.map(toClientDiagram);
   },
 
-  async getDiagram(id: string): Promise<ClientDiagram | null> {
+  async getDiagram(id: string, userId: string): Promise<ClientDiagram | null> {
     await ensureSeeded();
-    const row = await db.diagram.findUnique({ where: { id } });
+    const row = await db.diagram.findFirst({ where: { id, project: { userId } } });
     return row ? toClientDiagram(row) : null;
   },
 
-  async createProject(input: { name: string; description?: string }): Promise<Project> {
+  async createProject(input: { name: string; description?: string }, userId: string): Promise<Project> {
     await ensureSeeded();
     const projectId = generateId("project");
     const row = await db.project.create({
@@ -210,15 +232,17 @@ export const repository = {
         description: input.description ?? null,
         githubRepo: null,
         githubBranch: "main",
-        userId: DEMO_USER_ID,
+        userId,
       },
       include: { _count: { select: { diagrams: true } } },
     });
     return toClientProject(row);
   },
 
-  async createDiagram(draft: DiagramDraft, projectId: string, mermaidCode?: string): Promise<ClientDiagram> {
+  async createDiagram(draft: DiagramDraft, projectId: string, mermaidCode: string | undefined, userId: string): Promise<ClientDiagram> {
     await ensureSeeded();
+    const project = await db.project.findFirst({ where: { id: projectId, userId }, select: { id: true } });
+    if (!project) throw new NotFoundError();
     const diagramId = generateId("diagram");
     const { mermaidForType } = await import("@/types/diagram");
     const code = mermaidCode ?? mermaidForType(draft.type);
@@ -250,20 +274,25 @@ export const repository = {
 
   async updateDiagram(
     id: string,
-    patch: Partial<Pick<ClientDiagram, "name" | "mermaidCode" | "viewMode" | "isValid" | "validationScore">>
+    patch: Partial<Pick<ClientDiagram, "name" | "mermaidCode" | "viewMode" | "isValid" | "validationScore">>,
+    userId: string
   ): Promise<ClientDiagram | null> {
-    const row = await db.diagram.update({
-      where: { id },
+    const result = await db.diagram.updateMany({
+      where: { id, project: { userId } },
       data: { ...patch, updatedAt: new Date() },
     });
-    return toClientDiagram(row);
+    if (result.count === 0) return null;
+    const row = await db.diagram.findFirst({ where: { id, project: { userId } } });
+    return row ? toClientDiagram(row) : null;
   },
 
-  async deleteDiagram(id: string): Promise<void> {
-    await db.diagram.delete({ where: { id } });
+  async deleteDiagram(id: string, userId: string): Promise<boolean> {
+    const result = await db.diagram.deleteMany({ where: { id, project: { userId } } });
+    return result.count > 0;
   },
 
-  async recordPrompt(entry: Omit<PromptHistoryEntry, "id" | "createdAt">): Promise<void> {
+  async recordPrompt(entry: Omit<PromptHistoryEntry, "id" | "createdAt">, userId: string): Promise<void> {
+    await requireOwnedDiagram(entry.diagramId, userId);
     await db.promptHistory.create({
       data: {
         diagramId: entry.diagramId,
@@ -274,9 +303,9 @@ export const repository = {
     });
   },
 
-  async listPromptHistory(diagramId: string): Promise<PromptHistoryEntry[]> {
+  async listPromptHistory(diagramId: string, userId: string): Promise<PromptHistoryEntry[]> {
     const rows = await db.promptHistory.findMany({
-      where: { diagramId },
+      where: { diagramId, diagram: { project: { userId } } },
       orderBy: { createdAt: "desc" },
       take: 50,
     });
@@ -290,7 +319,8 @@ export const repository = {
     }));
   },
 
-  async saveValidation(diagramId: string, result: ValidationResult): Promise<void> {
+  async saveValidation(diagramId: string, result: ValidationResult, userId: string): Promise<void> {
+    await requireOwnedDiagram(diagramId, userId);
     await db.validationReport.create({
       data: {
         diagramId,
@@ -298,8 +328,8 @@ export const repository = {
         score: result.score,
       },
     });
-    await db.diagram.update({
-      where: { id: diagramId },
+    await db.diagram.updateMany({
+      where: { id: diagramId, project: { userId } },
       data: {
         isValid: result.issues.every((i) => i.severity !== "critical"),
         validationScore: result.score,
@@ -308,9 +338,9 @@ export const repository = {
     });
   },
 
-  async getValidation(diagramId: string): Promise<Array<{ issues: ValidationIssue[]; score: number; createdAt: string }> | null> {
+  async getValidation(diagramId: string, userId: string): Promise<Array<{ issues: ValidationIssue[]; score: number; createdAt: string }> | null> {
     const rows = await db.validationReport.findMany({
-      where: { diagramId },
+      where: { diagramId, diagram: { project: { userId } } },
       orderBy: { createdAt: "desc" },
       take: 1,
     });
@@ -324,15 +354,16 @@ export const repository = {
 
   /* ---------------- version history ---------------- */
 
-  async listVersions(diagramId: string): Promise<DiagramVersion[]> {
+  async listVersions(diagramId: string, userId: string): Promise<DiagramVersion[]> {
     const rows = await db.diagramVersion.findMany({
-      where: { diagramId },
+      where: { diagramId, diagram: { project: { userId } } },
       orderBy: { createdAt: "desc" },
     });
     return rows.map(toClientVersion);
   },
 
-  async saveVersion(diagramId: string, version: DiagramVersion): Promise<void> {
+  async saveVersion(diagramId: string, version: DiagramVersion, userId: string): Promise<void> {
+    await requireOwnedDiagram(diagramId, userId);
     await db.diagramVersion.create({
       data: {
         diagramId,
@@ -348,26 +379,17 @@ export const repository = {
     });
   },
 
-  async recordsChange(diagramId: string, summary: string): Promise<void> {
+  async recordsChange(diagramId: string, summary: string, userId: string): Promise<void> {
+    await requireOwnedDiagram(diagramId, userId);
     await db.diagramChangeLog.create({ data: { diagramId, summary } });
   },
 
-  async listChanges(diagramId: string, limit = 30): Promise<Array<{ at: string; summary: string }>> {
+  async listChanges(diagramId: string, limit: number | undefined, userId: string): Promise<Array<{ at: string; summary: string }>> {
     const rows = await db.diagramChangeLog.findMany({
-      where: { diagramId },
+      where: { diagramId, diagram: { project: { userId } } },
       orderBy: { createdAt: "desc" },
-      take: limit,
+      take: limit ?? 30,
     });
     return rows.map((row) => ({ at: row.createdAt.toISOString(), summary: row.summary }));
-  },
-
-  async reset(): Promise<void> {
-    await db.diagram.deleteMany({});
-    await db.project.deleteMany({});
-    await db.user.deleteMany({});
-    await db.validationReport.deleteMany({});
-    await db.promptHistory.deleteMany({});
-    await db.diagramVersion.deleteMany({});
-    await db.diagramChangeLog.deleteMany({});
   },
 };

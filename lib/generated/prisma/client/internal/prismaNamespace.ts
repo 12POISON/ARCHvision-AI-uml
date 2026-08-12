@@ -404,7 +404,6 @@ export const ModelName = {
   Diagram: 'Diagram',
   PromptHistory: 'PromptHistory',
   ValidationReport: 'ValidationReport',
-  SyncJob: 'SyncJob',
   Export: 'Export',
   DiagramVersion: 'DiagramVersion',
   DiagramChangeLog: 'DiagramChangeLog'
@@ -423,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "account" | "session" | "user" | "project" | "diagram" | "promptHistory" | "validationReport" | "syncJob" | "export" | "diagramVersion" | "diagramChangeLog"
+    modelProps: "account" | "session" | "user" | "project" | "diagram" | "promptHistory" | "validationReport" | "export" | "diagramVersion" | "diagramChangeLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -945,80 +944,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    SyncJob: {
-      payload: Prisma.$SyncJobPayload<ExtArgs>
-      fields: Prisma.SyncJobFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.SyncJobFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncJobPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.SyncJobFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncJobPayload>
-        }
-        findFirst: {
-          args: Prisma.SyncJobFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncJobPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.SyncJobFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncJobPayload>
-        }
-        findMany: {
-          args: Prisma.SyncJobFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncJobPayload>[]
-        }
-        create: {
-          args: Prisma.SyncJobCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncJobPayload>
-        }
-        createMany: {
-          args: Prisma.SyncJobCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.SyncJobCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncJobPayload>[]
-        }
-        delete: {
-          args: Prisma.SyncJobDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncJobPayload>
-        }
-        update: {
-          args: Prisma.SyncJobUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncJobPayload>
-        }
-        deleteMany: {
-          args: Prisma.SyncJobDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.SyncJobUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.SyncJobUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncJobPayload>[]
-        }
-        upsert: {
-          args: Prisma.SyncJobUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SyncJobPayload>
-        }
-        aggregate: {
-          args: Prisma.SyncJobAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSyncJob>
-        }
-        groupBy: {
-          args: Prisma.SyncJobGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SyncJobGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.SyncJobCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SyncJobCountAggregateOutputType> | number
-        }
-      }
-    }
     Export: {
       payload: Prisma.$ExportPayload<ExtArgs>
       fields: Prisma.ExportFieldRefs
@@ -1328,8 +1253,6 @@ export const ProjectScalarFieldEnum = {
   userId: 'userId',
   githubRepo: 'githubRepo',
   githubBranch: 'githubBranch',
-  githubToken: 'githubToken',
-  dbConnection: 'dbConnection',
   lastSyncedAt: 'lastSyncedAt',
   syncing: 'syncing',
   createdAt: 'createdAt',
@@ -1380,20 +1303,6 @@ export const ValidationReportScalarFieldEnum = {
 } as const
 
 export type ValidationReportScalarFieldEnum = (typeof ValidationReportScalarFieldEnum)[keyof typeof ValidationReportScalarFieldEnum]
-
-
-export const SyncJobScalarFieldEnum = {
-  id: 'id',
-  projectId: 'projectId',
-  status: 'status',
-  type: 'type',
-  log: 'log',
-  startedAt: 'startedAt',
-  completedAt: 'completedAt',
-  createdAt: 'createdAt'
-} as const
-
-export type SyncJobScalarFieldEnum = (typeof SyncJobScalarFieldEnum)[keyof typeof SyncJobScalarFieldEnum]
 
 
 export const ExportScalarFieldEnum = {
@@ -1577,20 +1486,6 @@ export type ListEnumViewModeFieldRefInput<$PrismaModel> = FieldRefInputType<$Pri
 
 
 /**
- * Reference to a field of type 'JobStatus'
- */
-export type EnumJobStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JobStatus'>
-    
-
-
-/**
- * Reference to a field of type 'JobStatus[]'
- */
-export type ListEnumJobStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JobStatus[]'>
-    
-
-
-/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -1761,7 +1656,6 @@ export type GlobalOmitConfig = {
   diagram?: Prisma.DiagramOmit
   promptHistory?: Prisma.PromptHistoryOmit
   validationReport?: Prisma.ValidationReportOmit
-  syncJob?: Prisma.SyncJobOmit
   export?: Prisma.ExportOmit
   diagramVersion?: Prisma.DiagramVersionOmit
   diagramChangeLog?: Prisma.DiagramChangeLogOmit

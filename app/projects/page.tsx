@@ -21,7 +21,7 @@ export default async function ProjectsPage(): Promise<React.ReactElement> {
   let projects: Awaited<ReturnType<typeof repository.listProjects>> = [];
   let loadError: string | null = null;
   try {
-    projects = await repository.listProjects();
+    projects = await repository.listProjects(session.user.id ?? "");
   } catch (err) {
     loadError = err instanceof Error ? err.message : "Unknown error";
   }

@@ -52,21 +52,20 @@ model User {
 }
 
 model Project {
-  id              String    @id @default(cuid())
-  name            String
-  description     String?
-  userId          String
-  user            User      @relation(fields: [userId], references: [id])
-  githubRepo      String?
-  githubBranch    String    @default("main")
-  githubToken     String? // AES-256-GCM encrypted
-  dbConnection    String? // AES-256-GCM encrypted JSON payload
-  lastSyncedAt    DateTime?
-  syncing         Boolean   @default(false)
-  diagrams        Diagram[]
-  syncJobs        SyncJob[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  name         String
+  description  String?
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  githubRepo   String?
+  githubBranch String    @default("main")
+  lastSyncedAt DateTime?
+  syncing      Boolean   @default(false)
+  diagrams     Diagram[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId])
 }
 
 model Diagram {
@@ -90,6 +89,8 @@ model Diagram {
   changeLog        DiagramChangeLog[]
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
+
+  @@index([projectId])
 }
 
 model PromptHistory {
@@ -100,6 +101,8 @@ model PromptHistory {
   response    String   @db.Text
   actionType  String // generate | transform | analyze | explain
   createdAt   DateTime @default(now())
+
+  @@index([diagramId])
 }
 
 model ValidationReport {
@@ -109,18 +112,8 @@ model ValidationReport {
   issues    Json // [{severity, message, rule, line?}]
   score     Int
   createdAt DateTime @default(now())
-}
 
-model SyncJob {
-  id          String    @id @default(cuid())
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id])
-  status      JobStatus @default(PENDING)
-  type        String // github_push | db_reflect
-  log         String?   @db.Text
-  startedAt   DateTime?
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
+  @@index([diagramId])
 }
 
 model Export {
@@ -130,6 +123,8 @@ model Export {
   format    String // svg | png | pdf | plantuml | mermaid | json | typescript | java | python | csharp
   url       String
   createdAt DateTime @default(now())
+
+  @@index([diagramId])
 }
 
 model DiagramVersion {
@@ -171,11 +166,4 @@ enum DiagramType {
 enum ViewMode {
   EXECUTIVE
   ENGINEERING
-}
-
-enum JobStatus {
-  PENDING
-  RUNNING
-  COMPLETED
-  FAILED
 }

@@ -4,9 +4,9 @@ Transform **natural language, code repositories and database schemas** into prod
 diagrams — then refine them with plain-English prompts, validate the architecture, and export
 clean artifacts.
 
-> **Zero-config mode:** the app runs fully offline with no API keys, database or Redis. Demo auth,
+> **Zero-config mode:** the app runs fully offline with no API keys or database. Demo auth,
 > localStorage persistence and ArchVision's local extraction engine power every feature. Add
-> keys/DBs and the same code paths switch to GPT-4o / Claude, PostgreSQL and Redis-backed jobs.
+> keys/DBs and the same code paths switch to GPT-4o / Claude and PostgreSQL.
 
 ---
 
@@ -24,6 +24,12 @@ clean artifacts.
 | **GitHub & DB** | OAuth connect, webhook-driven sync, SQL reflection → Crow's Foot ER | 
 | **Codegen** | TypeScript / Java / Python / C# with Lombok, Pydantic, decorators, getters/setters |
 | **Export** | SVG, PNG (2x/4x), PDF, PlantUML, Mermaid, JSON — validation-gated |
+| **Roadmap** | GitHub repo import, webhook-driven sync, SQL reflection → Crow's Foot ER |
+
+> **Auth & sharing status:** email/password sign-up is not implemented. Accounts come from
+> GitHub/Google OAuth (buttons appear once credentials are set) or the demo user. The demo
+> provider is **automatically disabled in production** when real OAuth is configured. Share
+> links are a preview UX — they grant no access; collaboration is a roadmap item.
 
 ## 🚀 Quick start
 
@@ -54,7 +60,7 @@ NEXTAUTH_SECRET=$(openssl rand -base64 32)
 
 ```bash
 docker compose up --build
-# app on :3000, PostgreSQL 15 + Redis 7 bundled
+# app on :3000, PostgreSQL 15 bundled
 ```
 
 ## 📜 Scripts
@@ -93,8 +99,10 @@ npm run build && npm run start
 > read live from `.env`.
 
 Production deploys run `npm run db:deploy` instead of `db:migrate`. Migrations live in
-`prisma/migrations/`. Redis + BullMQ wirepoints exist for GitHub webhooks and DB reflection
-jobs (`docker-compose.yml` includes both services).
+`prisma/migrations/`. Multi-tenancy is enforced server-side: the Prisma repository scopes every
+query to the authenticated user (`lib/data/repository.ts`), and `/api/storage` injects the user
+id from the session — payloads can never spoof ownership. API routes are protected with an
+in-memory rate limiter (per-user, `lib/rate-limit.ts`) plus auth guards.
 
 ## 🔬 Where the intelligence lives
 

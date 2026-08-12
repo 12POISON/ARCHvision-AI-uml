@@ -23,8 +23,8 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   let diagrams: Awaited<ReturnType<typeof repository.listDiagrams>> = [];
   try {
     [projects, diagrams] = await Promise.all([
-      repository.listProjects(),
-      repository.listDiagrams("project_demo_auth"),
+      repository.listProjects(session.user.id ?? ""),
+      repository.listDiagrams(null, session.user.id ?? ""),
     ]);
   } catch {
     // Workspace data service unavailable — render empty states instead of crashing.

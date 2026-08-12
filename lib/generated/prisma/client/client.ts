@@ -77,11 +77,6 @@ export type PromptHistory = Prisma.PromptHistoryModel
  */
 export type ValidationReport = Prisma.ValidationReportModel
 /**
- * Model SyncJob
- * 
- */
-export type SyncJob = Prisma.SyncJobModel
-/**
  * Model Export
  * 
  */

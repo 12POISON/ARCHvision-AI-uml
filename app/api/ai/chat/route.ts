@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
 import { streamText } from "ai";
 import { parseArchitectureDiagram } from "@/lib/architecture/parse";
 import { validateArchitecture } from "@/lib/architecture/validate";
@@ -264,8 +265,16 @@ function roleDescription(kind: string): string {
 export async function POST(request: Request): Promise<Response> {
   try {
     const session = await auth();
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const limited = rateLimit(`chat:${session.user.id}`, 30, 60_000);
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded" },
+        { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
+      );
     }
 
     let body: unknown;

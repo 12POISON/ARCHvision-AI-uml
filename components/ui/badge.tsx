@@ -10,7 +10,7 @@ const variants: Record<NonNullable<BadgeProps["variant"]>, string> = {
   accent: "bg-accent-soft text-[#92400E]",
   success: "bg-emerald-50 text-success",
   error: "bg-red-50 text-error",
-  warning: "bg-amber-50 text-amber-600",
+  warning: "bg-orange-50 text-orange-600",
   outline: "border border-line text-muted",
   "soft-blue": "bg-primary-50 text-primary-deep",
 };

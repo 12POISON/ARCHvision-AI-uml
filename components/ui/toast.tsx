@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export type ToastType = "success" | "error" | "info";
 
 interface ToastItem {
-  id: number;
+  id: string;
   type: ToastType;
   message: string;
 }
@@ -17,13 +17,13 @@ interface ToastItem {
 interface ToastState {
   toasts: ToastItem[];
   push: (type: ToastType, message: string) => void;
-  dismiss: (id: number) => void;
+  dismiss: (id: string) => void;
 }
 
 export const useToasts = create<ToastState>((set) => ({
   toasts: [],
   push: (type, message) => {
-    const id = Date.now() + Math.floor(Math.random() * 1000);
+    const id = crypto.randomUUID();
     set((s) => ({ toasts: [...s.toasts.slice(-3), { id, type, message }] }));
     setTimeout(() => {
       set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));

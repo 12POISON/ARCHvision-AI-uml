@@ -31,8 +31,6 @@ export type ProjectMinAggregateOutputType = {
   userId: string | null
   githubRepo: string | null
   githubBranch: string | null
-  githubToken: string | null
-  dbConnection: string | null
   lastSyncedAt: Date | null
   syncing: boolean | null
   createdAt: Date | null
@@ -46,8 +44,6 @@ export type ProjectMaxAggregateOutputType = {
   userId: string | null
   githubRepo: string | null
   githubBranch: string | null
-  githubToken: string | null
-  dbConnection: string | null
   lastSyncedAt: Date | null
   syncing: boolean | null
   createdAt: Date | null
@@ -61,8 +57,6 @@ export type ProjectCountAggregateOutputType = {
   userId: number
   githubRepo: number
   githubBranch: number
-  githubToken: number
-  dbConnection: number
   lastSyncedAt: number
   syncing: number
   createdAt: number
@@ -78,8 +72,6 @@ export type ProjectMinAggregateInputType = {
   userId?: true
   githubRepo?: true
   githubBranch?: true
-  githubToken?: true
-  dbConnection?: true
   lastSyncedAt?: true
   syncing?: true
   createdAt?: true
@@ -93,8 +85,6 @@ export type ProjectMaxAggregateInputType = {
   userId?: true
   githubRepo?: true
   githubBranch?: true
-  githubToken?: true
-  dbConnection?: true
   lastSyncedAt?: true
   syncing?: true
   createdAt?: true
@@ -108,8 +98,6 @@ export type ProjectCountAggregateInputType = {
   userId?: true
   githubRepo?: true
   githubBranch?: true
-  githubToken?: true
-  dbConnection?: true
   lastSyncedAt?: true
   syncing?: true
   createdAt?: true
@@ -196,8 +184,6 @@ export type ProjectGroupByOutputType = {
   userId: string
   githubRepo: string | null
   githubBranch: string
-  githubToken: string | null
-  dbConnection: string | null
   lastSyncedAt: Date | null
   syncing: boolean
   createdAt: Date
@@ -232,15 +218,12 @@ export type ProjectWhereInput = {
   userId?: Prisma.StringFilter<"Project"> | string
   githubRepo?: Prisma.StringNullableFilter<"Project"> | string | null
   githubBranch?: Prisma.StringFilter<"Project"> | string
-  githubToken?: Prisma.StringNullableFilter<"Project"> | string | null
-  dbConnection?: Prisma.StringNullableFilter<"Project"> | string | null
   lastSyncedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   syncing?: Prisma.BoolFilter<"Project"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   diagrams?: Prisma.DiagramListRelationFilter
-  syncJobs?: Prisma.SyncJobListRelationFilter
 }
 
 export type ProjectOrderByWithRelationInput = {
@@ -250,15 +233,12 @@ export type ProjectOrderByWithRelationInput = {
   userId?: Prisma.SortOrder
   githubRepo?: Prisma.SortOrderInput | Prisma.SortOrder
   githubBranch?: Prisma.SortOrder
-  githubToken?: Prisma.SortOrderInput | Prisma.SortOrder
-  dbConnection?: Prisma.SortOrderInput | Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   syncing?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   diagrams?: Prisma.DiagramOrderByRelationAggregateInput
-  syncJobs?: Prisma.SyncJobOrderByRelationAggregateInput
 }
 
 export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -271,15 +251,12 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   userId?: Prisma.StringFilter<"Project"> | string
   githubRepo?: Prisma.StringNullableFilter<"Project"> | string | null
   githubBranch?: Prisma.StringFilter<"Project"> | string
-  githubToken?: Prisma.StringNullableFilter<"Project"> | string | null
-  dbConnection?: Prisma.StringNullableFilter<"Project"> | string | null
   lastSyncedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   syncing?: Prisma.BoolFilter<"Project"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   diagrams?: Prisma.DiagramListRelationFilter
-  syncJobs?: Prisma.SyncJobListRelationFilter
 }, "id">
 
 export type ProjectOrderByWithAggregationInput = {
@@ -289,8 +266,6 @@ export type ProjectOrderByWithAggregationInput = {
   userId?: Prisma.SortOrder
   githubRepo?: Prisma.SortOrderInput | Prisma.SortOrder
   githubBranch?: Prisma.SortOrder
-  githubToken?: Prisma.SortOrderInput | Prisma.SortOrder
-  dbConnection?: Prisma.SortOrderInput | Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   syncing?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -310,8 +285,6 @@ export type ProjectScalarWhereWithAggregatesInput = {
   userId?: Prisma.StringWithAggregatesFilter<"Project"> | string
   githubRepo?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
   githubBranch?: Prisma.StringWithAggregatesFilter<"Project"> | string
-  githubToken?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
-  dbConnection?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
   lastSyncedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
   syncing?: Prisma.BoolWithAggregatesFilter<"Project"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Project"> | Date | string
@@ -324,15 +297,12 @@ export type ProjectCreateInput = {
   description?: string | null
   githubRepo?: string | null
   githubBranch?: string
-  githubToken?: string | null
-  dbConnection?: string | null
   lastSyncedAt?: Date | string | null
   syncing?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutProjectsInput
   diagrams?: Prisma.DiagramCreateNestedManyWithoutProjectInput
-  syncJobs?: Prisma.SyncJobCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateInput = {
@@ -342,14 +312,11 @@ export type ProjectUncheckedCreateInput = {
   userId: string
   githubRepo?: string | null
   githubBranch?: string
-  githubToken?: string | null
-  dbConnection?: string | null
   lastSyncedAt?: Date | string | null
   syncing?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   diagrams?: Prisma.DiagramUncheckedCreateNestedManyWithoutProjectInput
-  syncJobs?: Prisma.SyncJobUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUpdateInput = {
@@ -358,15 +325,12 @@ export type ProjectUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubRepo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubBranch?: Prisma.StringFieldUpdateOperationsInput | string
-  githubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dbConnection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   syncing?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutProjectsNestedInput
   diagrams?: Prisma.DiagramUpdateManyWithoutProjectNestedInput
-  syncJobs?: Prisma.SyncJobUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateInput = {
@@ -376,14 +340,11 @@ export type ProjectUncheckedUpdateInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   githubRepo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubBranch?: Prisma.StringFieldUpdateOperationsInput | string
-  githubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dbConnection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   syncing?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   diagrams?: Prisma.DiagramUncheckedUpdateManyWithoutProjectNestedInput
-  syncJobs?: Prisma.SyncJobUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyInput = {
@@ -393,8 +354,6 @@ export type ProjectCreateManyInput = {
   userId: string
   githubRepo?: string | null
   githubBranch?: string
-  githubToken?: string | null
-  dbConnection?: string | null
   lastSyncedAt?: Date | string | null
   syncing?: boolean
   createdAt?: Date | string
@@ -407,8 +366,6 @@ export type ProjectUpdateManyMutationInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubRepo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubBranch?: Prisma.StringFieldUpdateOperationsInput | string
-  githubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dbConnection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   syncing?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -422,8 +379,6 @@ export type ProjectUncheckedUpdateManyInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   githubRepo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubBranch?: Prisma.StringFieldUpdateOperationsInput | string
-  githubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dbConnection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   syncing?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -447,8 +402,6 @@ export type ProjectCountOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   githubRepo?: Prisma.SortOrder
   githubBranch?: Prisma.SortOrder
-  githubToken?: Prisma.SortOrder
-  dbConnection?: Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrder
   syncing?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -462,8 +415,6 @@ export type ProjectMaxOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   githubRepo?: Prisma.SortOrder
   githubBranch?: Prisma.SortOrder
-  githubToken?: Prisma.SortOrder
-  dbConnection?: Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrder
   syncing?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -477,8 +428,6 @@ export type ProjectMinOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   githubRepo?: Prisma.SortOrder
   githubBranch?: Prisma.SortOrder
-  githubToken?: Prisma.SortOrder
-  dbConnection?: Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrder
   syncing?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -550,34 +499,17 @@ export type ProjectUpdateOneRequiredWithoutDiagramsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutDiagramsInput, Prisma.ProjectUpdateWithoutDiagramsInput>, Prisma.ProjectUncheckedUpdateWithoutDiagramsInput>
 }
 
-export type ProjectCreateNestedOneWithoutSyncJobsInput = {
-  create?: Prisma.XOR<Prisma.ProjectCreateWithoutSyncJobsInput, Prisma.ProjectUncheckedCreateWithoutSyncJobsInput>
-  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutSyncJobsInput
-  connect?: Prisma.ProjectWhereUniqueInput
-}
-
-export type ProjectUpdateOneRequiredWithoutSyncJobsNestedInput = {
-  create?: Prisma.XOR<Prisma.ProjectCreateWithoutSyncJobsInput, Prisma.ProjectUncheckedCreateWithoutSyncJobsInput>
-  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutSyncJobsInput
-  upsert?: Prisma.ProjectUpsertWithoutSyncJobsInput
-  connect?: Prisma.ProjectWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutSyncJobsInput, Prisma.ProjectUpdateWithoutSyncJobsInput>, Prisma.ProjectUncheckedUpdateWithoutSyncJobsInput>
-}
-
 export type ProjectCreateWithoutUserInput = {
   id?: string
   name: string
   description?: string | null
   githubRepo?: string | null
   githubBranch?: string
-  githubToken?: string | null
-  dbConnection?: string | null
   lastSyncedAt?: Date | string | null
   syncing?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   diagrams?: Prisma.DiagramCreateNestedManyWithoutProjectInput
-  syncJobs?: Prisma.SyncJobCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutUserInput = {
@@ -586,14 +518,11 @@ export type ProjectUncheckedCreateWithoutUserInput = {
   description?: string | null
   githubRepo?: string | null
   githubBranch?: string
-  githubToken?: string | null
-  dbConnection?: string | null
   lastSyncedAt?: Date | string | null
   syncing?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   diagrams?: Prisma.DiagramUncheckedCreateNestedManyWithoutProjectInput
-  syncJobs?: Prisma.SyncJobUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutUserInput = {
@@ -632,8 +561,6 @@ export type ProjectScalarWhereInput = {
   userId?: Prisma.StringFilter<"Project"> | string
   githubRepo?: Prisma.StringNullableFilter<"Project"> | string | null
   githubBranch?: Prisma.StringFilter<"Project"> | string
-  githubToken?: Prisma.StringNullableFilter<"Project"> | string | null
-  dbConnection?: Prisma.StringNullableFilter<"Project"> | string | null
   lastSyncedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   syncing?: Prisma.BoolFilter<"Project"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
@@ -646,14 +573,11 @@ export type ProjectCreateWithoutDiagramsInput = {
   description?: string | null
   githubRepo?: string | null
   githubBranch?: string
-  githubToken?: string | null
-  dbConnection?: string | null
   lastSyncedAt?: Date | string | null
   syncing?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutProjectsInput
-  syncJobs?: Prisma.SyncJobCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutDiagramsInput = {
@@ -663,13 +587,10 @@ export type ProjectUncheckedCreateWithoutDiagramsInput = {
   userId: string
   githubRepo?: string | null
   githubBranch?: string
-  githubToken?: string | null
-  dbConnection?: string | null
   lastSyncedAt?: Date | string | null
   syncing?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  syncJobs?: Prisma.SyncJobUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutDiagramsInput = {
@@ -694,14 +615,11 @@ export type ProjectUpdateWithoutDiagramsInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubRepo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubBranch?: Prisma.StringFieldUpdateOperationsInput | string
-  githubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dbConnection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   syncing?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutProjectsNestedInput
-  syncJobs?: Prisma.SyncJobUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutDiagramsInput = {
@@ -711,93 +629,10 @@ export type ProjectUncheckedUpdateWithoutDiagramsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   githubRepo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubBranch?: Prisma.StringFieldUpdateOperationsInput | string
-  githubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dbConnection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   syncing?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  syncJobs?: Prisma.SyncJobUncheckedUpdateManyWithoutProjectNestedInput
-}
-
-export type ProjectCreateWithoutSyncJobsInput = {
-  id?: string
-  name: string
-  description?: string | null
-  githubRepo?: string | null
-  githubBranch?: string
-  githubToken?: string | null
-  dbConnection?: string | null
-  lastSyncedAt?: Date | string | null
-  syncing?: boolean
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  user: Prisma.UserCreateNestedOneWithoutProjectsInput
-  diagrams?: Prisma.DiagramCreateNestedManyWithoutProjectInput
-}
-
-export type ProjectUncheckedCreateWithoutSyncJobsInput = {
-  id?: string
-  name: string
-  description?: string | null
-  userId: string
-  githubRepo?: string | null
-  githubBranch?: string
-  githubToken?: string | null
-  dbConnection?: string | null
-  lastSyncedAt?: Date | string | null
-  syncing?: boolean
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  diagrams?: Prisma.DiagramUncheckedCreateNestedManyWithoutProjectInput
-}
-
-export type ProjectCreateOrConnectWithoutSyncJobsInput = {
-  where: Prisma.ProjectWhereUniqueInput
-  create: Prisma.XOR<Prisma.ProjectCreateWithoutSyncJobsInput, Prisma.ProjectUncheckedCreateWithoutSyncJobsInput>
-}
-
-export type ProjectUpsertWithoutSyncJobsInput = {
-  update: Prisma.XOR<Prisma.ProjectUpdateWithoutSyncJobsInput, Prisma.ProjectUncheckedUpdateWithoutSyncJobsInput>
-  create: Prisma.XOR<Prisma.ProjectCreateWithoutSyncJobsInput, Prisma.ProjectUncheckedCreateWithoutSyncJobsInput>
-  where?: Prisma.ProjectWhereInput
-}
-
-export type ProjectUpdateToOneWithWhereWithoutSyncJobsInput = {
-  where?: Prisma.ProjectWhereInput
-  data: Prisma.XOR<Prisma.ProjectUpdateWithoutSyncJobsInput, Prisma.ProjectUncheckedUpdateWithoutSyncJobsInput>
-}
-
-export type ProjectUpdateWithoutSyncJobsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  githubRepo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  githubBranch?: Prisma.StringFieldUpdateOperationsInput | string
-  githubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dbConnection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  syncing?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  user?: Prisma.UserUpdateOneRequiredWithoutProjectsNestedInput
-  diagrams?: Prisma.DiagramUpdateManyWithoutProjectNestedInput
-}
-
-export type ProjectUncheckedUpdateWithoutSyncJobsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
-  githubRepo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  githubBranch?: Prisma.StringFieldUpdateOperationsInput | string
-  githubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dbConnection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  syncing?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  diagrams?: Prisma.DiagramUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyUserInput = {
@@ -806,8 +641,6 @@ export type ProjectCreateManyUserInput = {
   description?: string | null
   githubRepo?: string | null
   githubBranch?: string
-  githubToken?: string | null
-  dbConnection?: string | null
   lastSyncedAt?: Date | string | null
   syncing?: boolean
   createdAt?: Date | string
@@ -820,14 +653,11 @@ export type ProjectUpdateWithoutUserInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubRepo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubBranch?: Prisma.StringFieldUpdateOperationsInput | string
-  githubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dbConnection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   syncing?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   diagrams?: Prisma.DiagramUpdateManyWithoutProjectNestedInput
-  syncJobs?: Prisma.SyncJobUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutUserInput = {
@@ -836,14 +666,11 @@ export type ProjectUncheckedUpdateWithoutUserInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubRepo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubBranch?: Prisma.StringFieldUpdateOperationsInput | string
-  githubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dbConnection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   syncing?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   diagrams?: Prisma.DiagramUncheckedUpdateManyWithoutProjectNestedInput
-  syncJobs?: Prisma.SyncJobUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateManyWithoutUserInput = {
@@ -852,8 +679,6 @@ export type ProjectUncheckedUpdateManyWithoutUserInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubRepo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   githubBranch?: Prisma.StringFieldUpdateOperationsInput | string
-  githubToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  dbConnection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   syncing?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -867,12 +692,10 @@ export type ProjectUncheckedUpdateManyWithoutUserInput = {
 
 export type ProjectCountOutputType = {
   diagrams: number
-  syncJobs: number
 }
 
 export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   diagrams?: boolean | ProjectCountOutputTypeCountDiagramsArgs
-  syncJobs?: boolean | ProjectCountOutputTypeCountSyncJobsArgs
 }
 
 /**
@@ -892,13 +715,6 @@ export type ProjectCountOutputTypeCountDiagramsArgs<ExtArgs extends runtime.Type
   where?: Prisma.DiagramWhereInput
 }
 
-/**
- * ProjectCountOutputType without action
- */
-export type ProjectCountOutputTypeCountSyncJobsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.SyncJobWhereInput
-}
-
 
 export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -907,15 +723,12 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   userId?: boolean
   githubRepo?: boolean
   githubBranch?: boolean
-  githubToken?: boolean
-  dbConnection?: boolean
   lastSyncedAt?: boolean
   syncing?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   diagrams?: boolean | Prisma.Project$diagramsArgs<ExtArgs>
-  syncJobs?: boolean | Prisma.Project$syncJobsArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["project"]>
 
@@ -926,8 +739,6 @@ export type ProjectSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   userId?: boolean
   githubRepo?: boolean
   githubBranch?: boolean
-  githubToken?: boolean
-  dbConnection?: boolean
   lastSyncedAt?: boolean
   syncing?: boolean
   createdAt?: boolean
@@ -942,8 +753,6 @@ export type ProjectSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   userId?: boolean
   githubRepo?: boolean
   githubBranch?: boolean
-  githubToken?: boolean
-  dbConnection?: boolean
   lastSyncedAt?: boolean
   syncing?: boolean
   createdAt?: boolean
@@ -958,19 +767,16 @@ export type ProjectSelectScalar = {
   userId?: boolean
   githubRepo?: boolean
   githubBranch?: boolean
-  githubToken?: boolean
-  dbConnection?: boolean
   lastSyncedAt?: boolean
   syncing?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "userId" | "githubRepo" | "githubBranch" | "githubToken" | "dbConnection" | "lastSyncedAt" | "syncing" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
+export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "userId" | "githubRepo" | "githubBranch" | "lastSyncedAt" | "syncing" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
 export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   diagrams?: boolean | Prisma.Project$diagramsArgs<ExtArgs>
-  syncJobs?: boolean | Prisma.Project$syncJobsArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ProjectIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -985,7 +791,6 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
     diagrams: Prisma.$DiagramPayload<ExtArgs>[]
-    syncJobs: Prisma.$SyncJobPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -994,8 +799,6 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     userId: string
     githubRepo: string | null
     githubBranch: string
-    githubToken: string | null
-    dbConnection: string | null
     lastSyncedAt: Date | null
     syncing: boolean
     createdAt: Date
@@ -1396,7 +1199,6 @@ export interface Prisma__ProjectClient<T, Null = never, ExtArgs extends runtime.
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   diagrams<T extends Prisma.Project$diagramsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$diagramsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DiagramPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  syncJobs<T extends Prisma.Project$syncJobsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$syncJobsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SyncJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1432,8 +1234,6 @@ export interface ProjectFieldRefs {
   readonly userId: Prisma.FieldRef<"Project", 'String'>
   readonly githubRepo: Prisma.FieldRef<"Project", 'String'>
   readonly githubBranch: Prisma.FieldRef<"Project", 'String'>
-  readonly githubToken: Prisma.FieldRef<"Project", 'String'>
-  readonly dbConnection: Prisma.FieldRef<"Project", 'String'>
   readonly lastSyncedAt: Prisma.FieldRef<"Project", 'DateTime'>
   readonly syncing: Prisma.FieldRef<"Project", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"Project", 'DateTime'>
@@ -1860,30 +1660,6 @@ export type Project$diagramsArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.DiagramScalarFieldEnum | Prisma.DiagramScalarFieldEnum[]
-}
-
-/**
- * Project.syncJobs
- */
-export type Project$syncJobsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the SyncJob
-   */
-  select?: Prisma.SyncJobSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the SyncJob
-   */
-  omit?: Prisma.SyncJobOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.SyncJobInclude<ExtArgs> | null
-  where?: Prisma.SyncJobWhereInput
-  orderBy?: Prisma.SyncJobOrderByWithRelationInput | Prisma.SyncJobOrderByWithRelationInput[]
-  cursor?: Prisma.SyncJobWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.SyncJobScalarFieldEnum | Prisma.SyncJobScalarFieldEnum[]
 }
 
 /**

@@ -5,10 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { GithubIcon } from "@/components/ui/brand-icons";
-import { Loader2, Mail, Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 
 export type AuthMode = "login" | "register";
@@ -22,10 +20,8 @@ interface AuthFormProps {
 export function AuthForm({ mode, hasGithub = false, hasGoogle = false }: AuthFormProps): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [loading, setLoading] = React.useState<"demo" | "github" | "google" | "local" | null>(null);
+  const [loading, setLoading] = React.useState<"demo" | "github" | "google" | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [email, setEmail] = React.useState("");
-  const [name, setName] = React.useState("");
 
   const isLogin = mode === "login";
   const oauthUnconfigured = !hasGithub || !hasGoogle;
@@ -55,23 +51,6 @@ export function AuthForm({ mode, hasGithub = false, hasGoogle = false }: AuthFor
     setLoading(provider);
     setError(null);
     await signIn(provider, { callbackUrl: "/dashboard" });
-  };
-
-  const handleLocal = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault();
-    setLoading("local");
-    setError(null);
-    try {
-      toast("info", "Email sign-in isn't configured in this demo — continuing with demo access.");
-      const result = await signIn("demo", { redirect: false });
-      if (result?.error) {
-        setError("Invalid credentials. Use demo access instead.");
-      } else {
-        router.push("/dashboard");
-      }
-    } finally {
-      setLoading(null);
-    }
   };
 
   return (
@@ -138,46 +117,17 @@ export function AuthForm({ mode, hasGithub = false, hasGoogle = false }: AuthFor
         </p>
       ) : null}
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center" aria-hidden="true">
-          <span className="w-full border-t border-line" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-white px-3 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
-            or with email
-          </span>
-        </div>
+      <div className="rounded-xl border border-dashed border-line bg-surface px-4 py-3">
+        <p className="text-center text-[12.5px] font-semibold text-foreground">
+          {isLogin ? "Email sign-in isn't available yet" : "Accounts are created via OAuth or demo access"}
+        </p>
+        <p className="mt-1 text-center text-[11.5px] leading-relaxed text-muted">
+          This preview build offers{" "}
+          <span className="font-semibold text-foreground">demo access</span> and{" "}
+          <span className="font-semibold text-foreground">GitHub / Google sign-in</span>. Email and
+          password accounts are on the roadmap.
+        </p>
       </div>
-      <form onSubmit={(e) => void handleLocal(e)} className="space-y-4">
-        {!isLogin ? (
-          <div className="space-y-1.5">
-            <Label htmlFor="name">Full name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ada Lovelace"
-              autoComplete="name"
-            />
-          </div>
-        ) : null}
-        <div className="space-y-1.5">
-          <Label htmlFor="email">Email address</Label>
-          <Input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@company.com"
-            autoComplete="email"
-          />
-        </div>
-        <Button type="submit" variant="outline" className="w-full" loading={loading === "local"}>
-          <Mail className="h-4 w-4" />
-          {isLogin ? "Sign in with email" : "Create account"}
-        </Button>
-      </form>
 
       {error ? (
         <p className="rounded-xl bg-red-50 px-4 py-2.5 text-[13px] font-medium text-error" role="alert">

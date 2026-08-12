@@ -19,6 +19,7 @@
     "@ai-sdk/anthropic": "^4.0.36",
     "@ai-sdk/openai": "^4.0.36",
     "@ai-sdk/react": "^4.0.61",
+    "@auth/prisma-adapter": "^2.11.3",
     "@monaco-editor/react": "^4.7.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",

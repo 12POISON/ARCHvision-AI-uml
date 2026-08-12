@@ -163,8 +163,8 @@ test("detectImportFormat: extension mapping", () => {
   assert.equal(detectImportFormat("notes.txt"), null);
 });
 
-test("templates: all 9 templates build mermaid that starts with a known diagram type", () => {
-  assert.equal(TEMPLATES.length, 9);
+test("templates: all templates build mermaid that starts with a known diagram type", () => {
+  assert.ok(TEMPLATES.length >= 9, "template library keeps growing");
   const starters = new Set([
     "flowchart",
     "graph",

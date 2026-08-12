@@ -55,7 +55,7 @@ export function ShareModal({ open, onOpenChange, diagramId, diagramName }: Share
     }
     setInvited((list) => [...list, email]);
     setInvite("");
-    toast("success", `Invitation sent to ${email}`);
+    toast("info", `Invite recorded for preview — no email sent to ${email}`);
   }, [invite]);
 
   const all = [...MOCK_COLLABORATORS, ...invited.map((e) => ({ name: e, color: "#64748B", online: false }))];
@@ -67,8 +67,14 @@ export function ShareModal({ open, onOpenChange, diagramId, diagramName }: Share
           <ModalTitle className="flex items-center gap-2">
             <Share2 className="h-5 w-5 text-primary" />
             Share “{diagramName}”
+            <span className="rounded-full border border-dashed border-slate-300 bg-surface px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted">
+              Preview
+            </span>
           </ModalTitle>
-          <ModalDescription>Anyone with the link can view and edit this diagram.</ModalDescription>
+          <ModalDescription>
+            Sharing isn&apos;t live yet — this link and the collaborator list are a mock. Diagrams
+            are private to your account, and this preview grants no access to anyone.
+          </ModalDescription>
         </ModalHeader>
 
         <div className="flex items-center gap-2">
@@ -126,7 +132,8 @@ export function ShareModal({ open, onOpenChange, diagramId, diagramName }: Share
         </div>
 
         <p className="mt-3 text-[11px] text-muted-foreground">
-          Real-time collaboration is simulated in this preview build.
+          Collaboration is simulated in this preview build. Real sharing (permission model,
+          invite emails, share links) is on the roadmap.
         </p>
       </ModalContent>
     </Modal>

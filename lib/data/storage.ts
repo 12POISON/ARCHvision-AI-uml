@@ -116,8 +116,7 @@ type RepositoryOp =
   | "listVersions"
   | "saveVersion"
   | "recordsChange"
-  | "listChanges"
-  | "reset";
+  | "listChanges";
 
 async function callDb<T>(op: RepositoryOp, ...args: unknown[]): Promise<T> {
   return dbRequest<T>(op, args, undefined);
@@ -314,9 +313,6 @@ function localListChanges(diagramId: string, limit = 30): Array<{ at: string; su
     .sort((a, b) => b.at.localeCompare(a.at))
     .slice(0, limit);
 }
-function localReset(): void {
-  window.localStorage.removeItem(STORAGE_KEY);
-}
 
 /* -------------------------------- facade -------------------------------- */
 
@@ -397,12 +393,5 @@ export const storage = {
   async listChanges(diagramId: string, limit = 30): Promise<Array<{ at: string; summary: string }>> {
     if (DB_MODE && (await checkDbHealth())) return callDb("listChanges", diagramId, limit);
     return localListChanges(diagramId, limit);
-  },
-  async reset(): Promise<void> {
-    if (DB_MODE && (await checkDbHealth())) {
-      await callDb("reset");
-      return;
-    }
-    localReset();
   },
 };

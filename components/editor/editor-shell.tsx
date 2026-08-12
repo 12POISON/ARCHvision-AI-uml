@@ -31,7 +31,15 @@ import { toast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
 import { isMermaidModelType } from "@/lib/mermaid/parser";
 
-export function EditorShell({ diagramId }: { diagramId: string }): React.ReactElement | null {
+export type AiMode = "openai" | "anthropic" | "offline";
+
+export function EditorShell({
+  diagramId,
+  aiMode,
+}: {
+  diagramId: string;
+  aiMode: AiMode;
+}): React.ReactElement | null {
   const router = useRouter();
   const engine = useDiagram(diagramId);
   const ui = useEditorUI();
@@ -212,7 +220,7 @@ export function EditorShell({ diagramId }: { diagramId: string }): React.ReactEl
 
         <AnimatePresence>
           {ui.sidePanel === "ai" ? (
-            <AISidebar engine={engine} open onClose={() => ui.setSidePanel(null)} />
+            <AISidebar engine={engine} mode={aiMode} open onClose={() => ui.setSidePanel(null)} />
           ) : null}
         </AnimatePresence>
 
