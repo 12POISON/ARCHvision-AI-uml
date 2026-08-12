@@ -57,6 +57,12 @@ export function Navbar({ user }: { user?: NavUser | null } = {}): React.ReactEle
   const pathname = usePathname();
   const [scrolled, setScrolled] = React.useState(false);
   const [hash, setHash] = React.useState("");
+  const [isMac, setIsMac] = React.useState(false);
+
+  React.useEffect(() => {
+    // ASCII-only "Cmd K" / "Ctrl K" label: immune to any charset misreading.
+    setIsMac(/Mac|iPhone|iPad/.test(typeof navigator !== "undefined" ? navigator.platform : ""));
+  }, []);
 
   React.useEffect(() => {
     const onScroll = (): void => setScrolled(window.scrollY > 8);
@@ -141,9 +147,9 @@ export function Navbar({ user }: { user?: NavUser | null } = {}): React.ReactEle
             aria-label="Open command palette"
           >
             <Search className="h-3.5 w-3.5" />
-            <span>Searchâ€¦</span>
+            <span>Search...</span>
             <kbd className="ml-4 rounded-md border border-line bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-              âŒ˜K
+              {isMac ? "Cmd" : "Ctrl"} K
             </kbd>
           </button>
           {isApp ? (

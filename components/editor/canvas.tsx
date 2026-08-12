@@ -71,7 +71,7 @@ function savePositions(diagramId: string, positions: Record<string, { x: number;
   try {
     window.localStorage.setItem(positionKey(diagramId), JSON.stringify(positions));
   } catch {
-    /* storage full or unavailable â€” positions are a convenience, not critical */
+    /* storage full or unavailable — positions are a convenience, not critical */
   }
 }
 
@@ -865,7 +865,7 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
           savedRef.current[id] = position;
         }
       } catch {
-        /* malformed drop payload â€” ignore */
+        /* malformed drop payload — ignore */
       }
     },
     [engine, screenToFlowPosition]
@@ -1028,7 +1028,7 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
     <React.Suspense
       fallback={
         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-          Preparing canvasâ€¦
+          Preparing canvas…
         </div>
       }
     >
@@ -1174,7 +1174,7 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
                     key={`wp-${i}`}
                     role="button"
                     aria-label={`Drag bend point ${i + 1}, double-click to remove`}
-                    title="Drag to reroute Â· double-click to remove"
+                    title="Drag to reroute · double-click to remove"
                     onPointerDown={(e) => {
                       e.stopPropagation();
                       setWaypointDrag({ edgeId: selectedEdge.id, index: i, startClient: { x: e.clientX, y: e.clientY }, startFlow: p });
