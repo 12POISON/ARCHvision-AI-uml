@@ -10,6 +10,8 @@ const nextConfig = {
   experimental: {
     // Package profiling: reduce client bundle of heavy ESM libs
     optimizePackageImports: ["lucide-react", "framer-motion", "@xyflow/react"],
+    // Prisma/pg run at the Node runtime — don't webpack-bundle them
+    serverComponentsExternalPackages: ["pg", "pgpass", "@prisma/client", "@prisma/adapter-pg"],
   },
   images: {
     formats: ["image/avif", "image/webp"],

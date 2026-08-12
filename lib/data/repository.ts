@@ -114,22 +114,54 @@ async function requireOwnedDiagram(diagramId: string, userId: string): Promise<v
   if (!row) throw new NotFoundError();
 }
 
-/** Ensure the demo owner user + demo project exist (mirror of local seed). */
+/** Ensure the demo owner user + demo project exist (mirror of local seed).
+ *  Runs once per process: existence checks are parallelized and the
+ *  version backfill is batched (one query + parallel creates), keeping
+ *  this under the client's bounded health-check timeout even on slow
+ *  database connections. */
+let seeded = false;
+
 export async function ensureSeeded(): Promise<void> {
-  const user = await db.user.findUnique({ where: { id: DEMO_USER_ID } });
+  if (seeded) return;
+  const [user, project] = await Promise.all([
+    db.user.findUnique({ where: { id: DEMO_USER_ID } }),
+    db.project.findUnique({ where: { id: DEMO_PROJECT_ID } }),
+  ]);
+
+  const writes: Array<Promise<unknown>> = [];
   if (!user) {
-    await db.user.create({
-      data: {
-        id: DEMO_USER_ID,
-        name: "Demo Explorer",
-        email: "demo@archvision.ai",
-      },
-    });
+    writes.push(
+      db.user.create({
+        data: {
+          id: DEMO_USER_ID,
+          name: "Demo Explorer",
+          email: "demo@archvision.ai",
+        },
+      })
+    );
   }
 
-  const project = await db.project.findUnique({ where: { id: DEMO_PROJECT_ID } });
   if (project) {
-    await backfillMissingVersions();
+    const missingVersions = await db.diagram.findMany({
+      where: { versions: { none: {} } },
+      select: { id: true, mermaidCode: true },
+    });
+    writes.push(
+      ...missingVersions.map((diagram) =>
+        db.diagramVersion.create({
+          data: {
+            diagramId: diagram.id,
+            version: 1,
+            label: "Version 1",
+            mermaidCode: diagram.mermaidCode,
+            summary: "Initial snapshot",
+            changes: ["Initial snapshot"],
+          },
+        })
+      )
+    );
+    await Promise.all(writes);
+    seeded = true;
     return;
   }
 
@@ -146,54 +178,59 @@ export async function ensureSeeded(): Promise<void> {
       updatedAt: now,
     },
   });
-
   const { mermaidForType } = await import("@/types/diagram");
-  for (const type of ["CLASS", "SEQUENCE"] as const) {
-    const diagramId = `diagram_demo_${type === "CLASS" ? 0 : 1}`;
-    const code = mermaidForType(type);
-    await db.diagram.create({
-      data: {
-        id: diagramId,
-        name: type === "CLASS" ? "Authentication Domain" : "Login Flow",
-        type,
-        projectId: projectRow.id,
-        mermaidCode: code,
-        viewMode: "ENGINEERING",
-        isValid: true,
-        validationScore: null,
-      },
-    });
-    await db.diagramVersion.create({
-      data: {
-        diagramId,
-        version: 1,
-        label: "Version 1",
-        mermaidCode: code,
-        summary: "Initial snapshot",
-        changes: ["Initial snapshot"],
-      },
-    });
-  }
-}
-
-/** Idempotent backfill: ensure every diagram has its initial version-1 snapshot. */
-async function backfillMissingVersions(): Promise<void> {
-  const diagrams = await db.diagram.findMany();
-  for (const diagram of diagrams) {
-    const count = await db.diagramVersion.count({ where: { diagramId: diagram.id } });
-    if (count === 0) {
+  writes.push(
+    ...(["CLASS", "SEQUENCE"] as const).map(async (type, index) => {
+      const diagramId = `diagram_demo_${index}`;
+      const code = mermaidForType(type);
+      await db.diagram.create({
+        data: {
+          id: diagramId,
+          name: type === "CLASS" ? "Authentication Domain" : "Login Flow",
+          type,
+          projectId: projectRow.id,
+          mermaidCode: code,
+          viewMode: "ENGINEERING",
+          isValid: true,
+          validationScore: null,
+        },
+      });
       await db.diagramVersion.create({
         data: {
-          diagramId: diagram.id,
+          diagramId,
           version: 1,
           label: "Version 1",
-          mermaidCode: diagram.mermaidCode,
+          mermaidCode: code,
           summary: "Initial snapshot",
           changes: ["Initial snapshot"],
         },
       });
-    }
-  }
+    })
+  );
+  await Promise.all(writes);
+  seeded = true;
+}
+
+/** Not used by ensureSeeded anymore — the backfill now lives inline, batched. */
+export async function backfillVersions(): Promise<void> {
+  const diagrams = await db.diagram.findMany();
+  await Promise.all(
+    diagrams.map(async (diagram) => {
+      const count = await db.diagramVersion.count({ where: { diagramId: diagram.id } });
+      if (count === 0) {
+        await db.diagramVersion.create({
+          data: {
+            diagramId: diagram.id,
+            version: 1,
+            label: "Version 1",
+            mermaidCode: diagram.mermaidCode,
+            summary: "Initial snapshot",
+            changes: ["Initial snapshot"],
+          },
+        });
+      }
+    })
+  );
 }
 
 export const repository = {

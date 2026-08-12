@@ -30,6 +30,11 @@ import { toast } from "@/components/ui/toast";
 const STORAGE_KEY = "archvision-store-v1";
 const DB_MODE = process.env.NEXT_PUBLIC_DATA_MODE === "db";
 
+/** Bounds every DB call made through the facade — a slow or hanging
+ *  database must never block the UI. Reads additionally fall back to
+ *  localStorage (`readWithFallback`), writes surface the error. */
+const DB_CALL_TIMEOUT_MS = 5000;
+
 interface PersistedState {
   projects: Project[];
   diagrams: Diagram[];
@@ -119,7 +124,7 @@ type RepositoryOp =
   | "listChanges";
 
 async function callDb<T>(op: RepositoryOp, ...args: unknown[]): Promise<T> {
-  return dbRequest<T>(op, args, undefined);
+  return dbRequest<T>(op, args, DB_CALL_TIMEOUT_MS);
 }
 
 async function callDbWithTimeout<T>(op: RepositoryOp, timeoutMs: number): Promise<T> {
@@ -174,6 +179,20 @@ async function checkDbHealth(): Promise<boolean> {
 
 if (typeof window !== "undefined") {
   void checkDbHealth();
+}
+
+/** DB-backed read with a bounded timeout and a localStorage fallback —
+ *  the UI always gets data, even when the database is slow or down. */
+async function readWithFallback<T>(op: RepositoryOp, args: unknown[], local: () => T): Promise<T> {
+  if (DB_MODE && (await checkDbHealth())) {
+    try {
+      return await dbRequest<T>(op, args, DB_CALL_TIMEOUT_MS);
+    } catch (error) {
+      console.warn(`[storage] DB read "${op}" failed — falling back to local data.`, error);
+      return local();
+    }
+  }
+  return local();
 }
 
 /* ------------------------- local mode (localStorage) ------------------------- */
@@ -320,16 +339,13 @@ export const storage = {
   storageMode: (): "db" | "local" => (DB_MODE && dbAvailable ? "db" : "local"),
 
   async listProjects(): Promise<Project[]> {
-    if (DB_MODE && (await checkDbHealth())) return callDb("listProjects");
-    return localListProjects();
+    return readWithFallback("listProjects", [], () => localListProjects());
   },
   async listDiagrams(projectId: string | null): Promise<Diagram[]> {
-    if (DB_MODE && (await checkDbHealth())) return callDb("listDiagrams", projectId);
-    return localListDiagrams(projectId);
+    return readWithFallback("listDiagrams", [projectId], () => localListDiagrams(projectId));
   },
   async getDiagram(id: string): Promise<Diagram | null> {
-    if (DB_MODE && (await checkDbHealth())) return callDb("getDiagram", id);
-    return localGetDiagram(id);
+    return readWithFallback("getDiagram", [id], () => localGetDiagram(id));
   },
   async createProject(input: { name: string; description?: string }): Promise<Project> {
     if (DB_MODE && (await checkDbHealth())) return callDb("createProject", input);
@@ -358,8 +374,7 @@ export const storage = {
     localRecordPrompt(entry);
   },
   async listPromptHistory(diagramId: string): Promise<PromptHistoryEntry[]> {
-    if (DB_MODE && (await checkDbHealth())) return callDb("listPromptHistory", diagramId);
-    return localListPromptHistory(diagramId);
+    return readWithFallback("listPromptHistory", [diagramId], () => localListPromptHistory(diagramId));
   },
   async saveValidation(diagramId: string, result: ValidationResult): Promise<void> {
     if (DB_MODE && (await checkDbHealth())) {
@@ -369,12 +384,10 @@ export const storage = {
     localSaveValidation(diagramId, result);
   },
   async getValidation(diagramId: string): Promise<Array<{ issues: ValidationIssue[]; score: number; createdAt: string }> | null> {
-    if (DB_MODE && (await checkDbHealth())) return callDb("getValidation", diagramId);
-    return localGetValidation(diagramId);
+    return readWithFallback("getValidation", [diagramId], () => localGetValidation(diagramId));
   },
   async listVersions(diagramId: string): Promise<DiagramVersion[]> {
-    if (DB_MODE && (await checkDbHealth())) return callDb("listVersions", diagramId);
-    return localListVersions(diagramId);
+    return readWithFallback("listVersions", [diagramId], () => localListVersions(diagramId));
   },
   async saveVersion(diagramId: string, version: DiagramVersion): Promise<void> {
     if (DB_MODE && (await checkDbHealth())) {
@@ -391,7 +404,6 @@ export const storage = {
     localRecordsChange(diagramId, summary);
   },
   async listChanges(diagramId: string, limit = 30): Promise<Array<{ at: string; summary: string }>> {
-    if (DB_MODE && (await checkDbHealth())) return callDb("listChanges", diagramId, limit);
-    return localListChanges(diagramId, limit);
+    return readWithFallback("listChanges", [diagramId, limit], () => localListChanges(diagramId, limit));
   },
 };

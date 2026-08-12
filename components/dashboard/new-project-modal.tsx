@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { FolderPlus, Loader2, Lock } from "lucide-react";
 import {
   Modal,
@@ -16,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { storage } from "@/lib/data/storage";
+import { useWorkspaceStore } from "@/lib/data/workspace-store";
 import { toast } from "@/components/ui/toast";
 
 interface NewProjectModalProps {
@@ -33,7 +33,6 @@ const VISIBILITY_OPTIONS = [
 ] as const;
 
 export function NewProjectModal({ open, onOpenChange }: NewProjectModalProps): React.ReactElement {
-  const router = useRouter();
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [visibility, setVisibility] = React.useState<(typeof VISIBILITY_OPTIONS)[number]["value"]>("private");
@@ -54,7 +53,7 @@ export function NewProjectModal({ open, onOpenChange }: NewProjectModalProps): R
       await storage.createProject({ name: name.trim(), description: description.trim() || undefined });
       toast("success", `Project "${name.trim()}" created`);
       onOpenChange(false);
-      router.refresh();
+      await useWorkspaceStore.getState().reload();
     } catch (err) {
       toast("error", err instanceof Error ? `Failed to create project: ${err.message}` : "Failed to create project");
     } finally {

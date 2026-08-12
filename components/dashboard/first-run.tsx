@@ -110,7 +110,7 @@ export function FirstRunOnboarding({ projects }: { projects: Project[] }): React
         </div>
       </div>
 
-      <NewDiagramModal open={modalOpen} onOpenChange={setModalOpen} projects={projects} />
+      <NewDiagramModal open={modalOpen} onOpenChange={setModalOpen} />
     </section>
   );
 }

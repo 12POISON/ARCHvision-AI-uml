@@ -12,21 +12,24 @@ import { NewProjectCard } from "@/components/dashboard/project-card";
 import { DiagramCard } from "@/components/dashboard/diagram-card";
 import { FirstRunOnboarding } from "@/components/dashboard/first-run";
 import { Button } from "@/components/ui/button";
-import type { Diagram, Project } from "@/types/diagram";
 import { TEMPLATES } from "@/lib/architecture/templates";
 import { storage } from "@/lib/data/storage";
+import { useWorkspaceStore } from "@/lib/data/workspace-store";
 
 interface DashboardViewProps {
   user: { name?: string | null };
-  projects: Project[];
-  diagrams: Diagram[];
 }
 
-export function DashboardView({ user, projects, diagrams }: DashboardViewProps): React.ReactElement {
+export function DashboardView({ user }: DashboardViewProps): React.ReactElement {
   const [modalOpen, setModalOpen] = React.useState(false);
   const [projectModalOpen, setProjectModalOpen] = React.useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { projects, diagrams, loading, loaded, reload } = useWorkspaceStore();
+
+  React.useEffect(() => {
+    void reload();
+  }, [reload]);
 
   React.useEffect(() => {
     if (searchParams.get("new") === "1") {
@@ -83,12 +86,15 @@ export function DashboardView({ user, projects, diagrams }: DashboardViewProps):
             Welcome back, {userName}
           </h1>
           <p className="mt-2 text-sm text-muted">
-            {projects.length} {projects.length === 1 ? "project" : "projects"} · {totalDiagrams}{" "}
-            {totalDiagrams === 1 ? "diagram" : "diagrams"} in your workspace
+            {loaded
+              ? `${projects.length} ${projects.length === 1 ? "project" : "projects"} · ${totalDiagrams} ${
+                  totalDiagrams === 1 ? "diagram" : "diagrams"
+                } in your workspace`
+              : "Loading workspace…"}
           </p>
         </div>
         <div className="flex items-center gap-2.5">
-          <Button variant="outline" onClick={() => router.refresh()} aria-label="Refresh workspace">
+          <Button variant="outline" onClick={() => void reload()} aria-label="Refresh workspace" loading={loading}>
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
@@ -99,115 +105,144 @@ export function DashboardView({ user, projects, diagrams }: DashboardViewProps):
         </div>
       </motion.div>
 
-      <div className="mb-12">
-        <StatsBar
-          diagrams={totalDiagrams}
-          projects={projects.length}
-          templates={TEMPLATES.length}
-          storageMode={storage.storageMode()}
-        />
-      </div>
-
-      <div className="mb-4 grid gap-5 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-primary"
-        >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-transform duration-300 group-hover:scale-110">
-            <FilePlus2 className="h-5 w-5" />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-sm font-bold text-foreground">New Diagram</span>
-            <span className="block text-[13px] text-muted-foreground">Paste a vision, AI does the rest</span>
-          </span>
-          <ArrowRight className="ml-auto h-4 w-4 text-slate-300 transition-all duration-300 group-hover:translate-x-1 group-hover:text-primary" />
-        </button>
-        <button
-          type="button"
-          onClick={() => router.push("/projects")}
-          className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-primary"
-        >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-transform duration-300 group-hover:scale-110">
-            <FolderKanban className="h-5 w-5" />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-sm font-bold text-foreground">Browse Projects</span>
-            <span className="block text-[13px] text-muted-foreground">Jump across all your projects</span>
-          </span>
-          <ArrowRight className="ml-auto h-4 w-4 text-slate-300 transition-all duration-300 group-hover:translate-x-1 group-hover:text-primary" />
-        </button>
-      </div>
-
-      {totalDiagrams === 0 ? (
-        <FirstRunOnboarding projects={projects} />
+      {!loaded ? (
+        <WorkspaceSkeleton />
       ) : (
         <>
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Recent diagrams</h2>
-            <p className="text-[13px] text-muted-foreground">{recentDiagrams.length} shown</p>
+          <div className="mb-12">
+            <StatsBar
+              diagrams={totalDiagrams}
+              projects={projects.length}
+              templates={TEMPLATES.length}
+              storageMode={storage.storageMode()}
+            />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {recentDiagrams.map((diagram, index) => (
-              <DiagramCard key={diagram.id} diagram={diagram} index={index} />
-            ))}
+
+          <div className="mb-4 grid gap-5 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-primary"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-transform duration-300 group-hover:scale-110">
+                <FilePlus2 className="h-5 w-5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-foreground">New Diagram</span>
+                <span className="block text-[13px] text-muted-foreground">Paste a vision, AI does the rest</span>
+              </span>
+              <ArrowRight className="ml-auto h-4 w-4 text-slate-300 transition-all duration-300 group-hover:translate-x-1 group-hover:text-primary" />
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/projects")}
+              className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-primary"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-transform duration-300 group-hover:scale-110">
+                <FolderKanban className="h-5 w-5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-foreground">Browse Projects</span>
+                <span className="block text-[13px] text-muted-foreground">Jump across all your projects</span>
+              </span>
+              <ArrowRight className="ml-auto h-4 w-4 text-slate-300 transition-all duration-300 group-hover:translate-x-1 group-hover:text-primary" />
+            </button>
           </div>
+
+          {totalDiagrams === 0 ? (
+            <FirstRunOnboarding projects={projects} />
+          ) : (
+            <>
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-lg font-extrabold tracking-tight text-foreground">Recent diagrams</h2>
+                <p className="text-[13px] text-muted-foreground">{recentDiagrams.length} shown</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {recentDiagrams.map((diagram, index) => (
+                  <DiagramCard key={diagram.id} diagram={diagram} index={index} />
+                ))}
+              </div>
+            </>
+          )}
+
+          <div className="mb-6 mt-12 flex items-center justify-between">
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Projects</h2>
+            <Link href="/projects" className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors hover:text-primary-deep">
+              View all <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+
+          {projects.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
+              <h3 className="text-lg font-extrabold tracking-tight text-foreground">No projects yet. Create your first.</h3>
+              <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">
+                Projects group your diagrams into one workspace.
+              </p>
+              <div className="mt-6">
+                <Button onClick={() => setProjectModalOpen(true)}>
+                  <FilePlus2 className="h-4 w-4" />
+                  Create your first project
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {projects.slice(0, 3).map((project) => (
+                <Link
+                  key={project.id}
+                  data-project-id={project.id}
+                  href={`/dashboard?projectId=${project.id}`}
+                  className="group flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-transform duration-300 group-hover:scale-110">
+                    <FolderKanban className="h-5 w-5" />
+                  </span>
+                  <h3 className="mt-3 truncate text-base font-extrabold tracking-tight text-foreground">{project.name}</h3>
+                  <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted">
+                    {project.description ?? "No description yet — this project is ready for its first diagram."}
+                  </p>
+                  <div className="mt-auto flex items-center justify-between pt-4">
+                    <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                      <Workflow className="h-3.5 w-3.5" />
+                      {project.diagramCount} {project.diagramCount === 1 ? "diagram" : "diagrams"}
+                    </span>
+                    <span className="text-[13px] font-semibold text-primary transition-colors group-hover:text-primary-deep">
+                      Open →
+                    </span>
+                  </div>
+                </Link>
+              ))}
+              <NewProjectCard onClick={() => setProjectModalOpen(true)} />
+            </div>
+          )}
         </>
       )}
 
-      <div className="mb-6 mt-12 flex items-center justify-between">
-        <h2 className="text-lg font-extrabold tracking-tight text-foreground">Projects</h2>
-        <Link href="/projects" className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors hover:text-primary-deep">
-          View all <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
-
-      {projects.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
-          <h3 className="text-lg font-extrabold tracking-tight text-foreground">No projects yet. Create your first.</h3>
-          <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">
-            Projects group your diagrams into one workspace.
-          </p>
-          <div className="mt-6">
-            <Button onClick={() => setProjectModalOpen(true)}>
-              <FilePlus2 className="h-4 w-4" />
-              Create your first project
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.slice(0, 3).map((project) => (
-            <Link
-              key={project.id}
-              data-project-id={project.id}
-              href={`/dashboard?projectId=${project.id}`}
-              className="group flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-primary"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-transform duration-300 group-hover:scale-110">
-                <FolderKanban className="h-5 w-5" />
-              </span>
-              <h3 className="mt-3 truncate text-base font-extrabold tracking-tight text-foreground">{project.name}</h3>
-              <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted">
-                {project.description ?? "No description yet — this project is ready for its first diagram."}
-              </p>
-              <div className="mt-auto flex items-center justify-between pt-4">
-                <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                  <Workflow className="h-3.5 w-3.5" />
-                  {project.diagramCount} {project.diagramCount === 1 ? "diagram" : "diagrams"}
-                </span>
-                <span className="text-[13px] font-semibold text-primary transition-colors group-hover:text-primary-deep">
-                  Open →
-                </span>
-              </div>
-            </Link>
-          ))}
-          <NewProjectCard onClick={() => setProjectModalOpen(true)} />
-        </div>
-      )}
-
-      <NewDiagramModal open={modalOpen} onOpenChange={setModalOpen} projects={projects} />
+      <NewDiagramModal open={modalOpen} onOpenChange={setModalOpen} />
       <NewProjectModal open={projectModalOpen} onOpenChange={setProjectModalOpen} />
+    </div>
+  );
+}
+
+function WorkspaceSkeleton(): React.ReactElement {
+  return (
+    <div aria-hidden="true">
+      <div className="mb-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="card-elevated h-28 animate-pulse rounded-card bg-slate-100" />
+        ))}
+      </div>
+      <div className="mb-4 grid gap-5 sm:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="h-20 animate-pulse rounded-xl bg-slate-100" />
+        ))}
+      </div>
+      <div className="mb-6 h-6 w-40 animate-pulse rounded bg-slate-100" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-44 animate-pulse rounded-xl bg-slate-100" />
+        ))}
+      </div>
     </div>
   );
 }

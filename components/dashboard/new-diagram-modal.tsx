@@ -20,7 +20,7 @@ import { DIAGRAM_TYPES } from "@/types/diagram";
 import { storage } from "@/lib/data/storage";
 import { extractModelFromText } from "@/lib/ai/mock-engine";
 import { modelToMermaid } from "@/lib/mermaid/parser";
-import { useProjectsData } from "@/components/dashboard/project-card";
+import { useWorkspaceStore } from "@/lib/data/workspace-store";
 
 type QuickType = "CLASS" | "SEQUENCE" | "ER";
 
@@ -28,7 +28,6 @@ interface NewDiagramModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId?: string | null;
-  projects?: Array<{ id: string; name: string }>;
 }
 
 interface ScopeEntity {
@@ -36,10 +35,9 @@ interface ScopeEntity {
   included: boolean;
 }
 
-export function NewDiagramModal({ open, onOpenChange, projectId, projects: injectedProjects }: NewDiagramModalProps): React.ReactElement {
+export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramModalProps): React.ReactElement {
   const router = useRouter();
-  const { projects: hookProjects } = useProjectsData();
-  const projects = injectedProjects ?? hookProjects;
+  const projects = useWorkspaceStore((s) => s.projects);
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [selectedProject, setSelectedProject] = React.useState("");

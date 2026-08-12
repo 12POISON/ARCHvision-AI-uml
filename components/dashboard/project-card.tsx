@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import { Boxes, Clock, GitBranch, Network, Plus, Trash2, Workflow } from "lucide-react";
 import type { DiagramType, Project } from "@/types/diagram";
 import { Badge } from "@/components/ui/badge";
-import { storage } from "@/lib/data/storage";
 import { formatRelativeTime } from "@/lib/utils";
 
 export interface LiteDiagram {
@@ -18,45 +17,6 @@ export interface LiteDiagram {
 
 export interface ProjectWithDiagrams extends Project {
   diagrams: LiteDiagram[];
-}
-
-export function useProjectsData(): {
-  projects: ProjectWithDiagrams[];
-  reload: () => void;
-  deleteProject: (id: string) => void;
-} {
-  const [projects, setProjects] = React.useState<ProjectWithDiagrams[]>([]);
-  const [version, setVersion] = React.useState(0);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const all = await storage.listProjects();
-      if (cancelled) return;
-      const withDiagrams = await Promise.all(
-        all.map(async (project) => ({
-          ...project,
-          diagrams: await storage.listDiagrams(project.id),
-        }))
-      );
-      if (!cancelled) setProjects(withDiagrams);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [version]);
-
-  const reload = React.useCallback(() => setVersion((v) => v + 1), []);
-
-  const deleteProject = React.useCallback((id: string) => {
-    void (async () => {
-      const diagrams = await storage.listDiagrams(id);
-      for (const diagram of diagrams) await storage.deleteDiagram(diagram.id);
-      setVersion((v) => v + 1);
-    })();
-  }, []);
-
-  return { projects, reload, deleteProject };
 }
 
 interface ProjectCardProps {
