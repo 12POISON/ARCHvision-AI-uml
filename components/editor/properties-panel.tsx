@@ -293,7 +293,7 @@ function NodeEditor({ engine }: { engine: DiagramEngine }): React.ReactElement |
           />
           Interface
         </label>
-        <label className={cn("flex items-center gap-1.5 text-[11.5px] font-medium text-foreground", node.isAbstract && "text-amber-600")}>
+        <label className={cn("flex items-center gap-1.5 text-[11.5px] font-medium text-foreground", node.isAbstract && "text-teal-700")}>
           <input
             type="checkbox"
             checked={node.isAbstract}

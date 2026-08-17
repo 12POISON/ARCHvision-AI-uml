@@ -297,16 +297,16 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
               </div>
 
               {preview && preview.length > 0 ? (
-                <div className="rounded-2xl border border-amber-200/70 bg-accent-soft/60 p-4">
+                <div className="rounded-2xl border border-accent-200/70 bg-accent-soft/60 p-4">
                   <div className="mb-3 flex items-center justify-between">
-                    <p className="flex items-center gap-2 text-[13px] font-bold text-[#92400E]">
+                    <p className="flex items-center gap-2 text-[13px] font-bold text-teal-900">
                       <Sparkles className="h-3.5 w-3.5" />
                       Extracted scope — {includedCount} {includedCount === 1 ? "entity" : "entities"}
                     </p>
                     <button
                       type="button"
                       onClick={() => setPreview(null)}
-                      className="text-[12px] font-semibold text-amber-700 transition-colors hover:text-amber-900"
+                      className="text-[12px] font-semibold text-teal-700 transition-colors hover:text-teal-900"
                     >
                       Reset
                     </button>
@@ -324,15 +324,15 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
                         className={cn(
                           "flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-[12.5px] font-semibold transition-all duration-200",
                           entity.included
-                            ? "border-amber-300 bg-white text-[#92400E] shadow-sm"
-                            : "border-amber-200 bg-transparent text-amber-700/40 line-through"
+                            ? "border-accent-300 bg-white text-teal-900 shadow-sm"
+                            : "border-accent-200 bg-transparent text-teal-700/40 line-through"
                         )}
                         aria-pressed={entity.included}
                       >
                         <span
                           className={cn(
                             "flex h-4 w-4 items-center justify-center rounded-full border transition-colors duration-200",
-                            entity.included ? "border-amber-400 bg-amber-400 text-white" : "border-amber-300 bg-white"
+                            entity.included ? "border-accent bg-accent text-teal-950" : "border-accent-300 bg-white"
                           )}
                         >
                           {entity.included ? <Check className="h-2.5 w-2.5" /> : null}

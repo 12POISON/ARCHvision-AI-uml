@@ -1076,7 +1076,7 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
             nodeColor={(node) => {
               const data = (node as UMLFlowNode).data;
               if (data?.isInterface) return "#93C5FD";
-              if (data?.isAbstract) return "#FDE68A";
+              if (data?.isAbstract) return "#99F6E4";
               return "#DBEAFE";
             }}
           />
@@ -1093,7 +1093,7 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
                     cx={sx}
                     cy={sy}
                     r={11}
-                    fill="#F59E0B"
+                    fill="#14B8A6"
                     stroke="#fff"
                     strokeWidth={2}
                     className="cursor-pointer drop-shadow-sm"

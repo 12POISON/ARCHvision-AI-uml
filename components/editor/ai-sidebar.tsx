@@ -192,7 +192,7 @@ export function AISidebar({ engine, open, onClose, mode }: AISidebarProps): Reac
       </div>
 
       {engine.selectedNodeId ? (
-        <div className="border-b border-amber-200/60 bg-accent-soft/50 px-5 py-2 text-[12px] text-[#92400E]">
+        <div className="border-b border-accent-200/60 bg-accent-soft/50 px-5 py-2 text-[12px] text-teal-900">
           <span className="font-bold">Node selected:</span> {engine.selectedNodeId} — edits will target this
           class.
         </div>
@@ -244,7 +244,7 @@ export function AISidebar({ engine, open, onClose, mode }: AISidebarProps): Reac
                 type="button"
                 onClick={() => handleSuggestion(suggestion.action)}
                 disabled={streaming}
-                className="flex w-full items-center gap-2.5 rounded-xl border border-amber-200/70 bg-accent-soft/60 px-3.5 py-2.5 text-left text-[12.5px] font-semibold text-[#92400E] transition-all duration-200 hover:border-amber-300 hover:bg-accent-soft disabled:opacity-50"
+                className="flex w-full items-center gap-2.5 rounded-xl border border-accent-200/70 bg-accent-soft/60 px-3.5 py-2.5 text-left text-[12.5px] font-semibold text-teal-900 transition-all duration-200 hover:border-accent-300 hover:bg-accent-soft disabled:opacity-50"
               >
                 <suggestion.icon className="h-3.5 w-3.5" />
                 {suggestion.label}
@@ -267,7 +267,7 @@ export function AISidebar({ engine, open, onClose, mode }: AISidebarProps): Reac
               }
             }}
             placeholder={engine.selectedNodeId ? `Change ${engine.selectedNodeId}…` : "Describe a change, e.g. \"Make User inherit from Account\"…"}
-            className="w-full rounded-btn2 border border-line bg-white py-3 pl-4 pr-12 text-[13px] text-foreground shadow-sm outline-none transition-all duration-300 placeholder:text-muted-foreground focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.12)]"
+            className="focus-ring w-full rounded-btn2 border border-line bg-white py-3 pl-4 pr-12 text-[13px] text-foreground shadow-sm placeholder:text-muted-foreground transition-all duration-300"
             aria-label="Message the AI copilot"
             disabled={streaming}
           />

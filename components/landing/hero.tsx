@@ -92,7 +92,7 @@ export function Hero({ authed = false }: { authed?: boolean }): React.ReactEleme
             className="mt-10 flex items-center justify-center gap-6 text-[13px] text-muted-foreground"
           >
             <span className="flex items-center gap-1.5">
-              <Zap className="h-3.5 w-3.5 text-accent" /> Blazing-fast streaming
+              <Zap className="h-3.5 w-3.5 text-teal-600" /> Blazing-fast streaming
             </span>
             <span className="hidden h-4 w-px bg-line sm:block" />
             <span className="flex items-center gap-1.5">
