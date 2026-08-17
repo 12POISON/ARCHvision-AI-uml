@@ -34,6 +34,7 @@ export interface EditorUIState {
   docsOpen: boolean;
   versionOpen: boolean;
   shareOpen: boolean;
+  reportOpen: boolean;
   aiGenerateOpen: boolean;
   importOpen: boolean;
   commentsOpen: boolean;
@@ -46,6 +47,7 @@ export interface EditorUIState {
   setDocsOpen: (open: boolean) => void;
   setVersionOpen: (open: boolean) => void;
   setShareOpen: (open: boolean) => void;
+  setReportOpen: (open: boolean) => void;
   setAiGenerateOpen: (open: boolean) => void;
   setImportOpen: (open: boolean) => void;
   setCommentsOpen: (open: boolean) => void;
@@ -61,6 +63,7 @@ export const useEditorUI = create<EditorUIState>((set) => ({
   docsOpen: false,
   versionOpen: false,
   shareOpen: false,
+  reportOpen: false,
   aiGenerateOpen: false,
   importOpen: false,
   commentsOpen: false,
@@ -73,6 +76,7 @@ export const useEditorUI = create<EditorUIState>((set) => ({
   setDocsOpen: (docsOpen) => set({ docsOpen }),
   setVersionOpen: (versionOpen) => set({ versionOpen }),
   setShareOpen: (shareOpen) => set({ shareOpen }),
+  setReportOpen: (reportOpen) => set({ reportOpen }),
   setAiGenerateOpen: (aiGenerateOpen) => set({ aiGenerateOpen }),
   setImportOpen: (importOpen) => set({ importOpen }),
   setCommentsOpen: (commentsOpen) => set({ commentsOpen }),

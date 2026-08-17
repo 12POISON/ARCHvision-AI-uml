@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronLeft,
   Clipboard,
+  ClipboardList,
   Code2,
   Copy,
   Download,
@@ -98,12 +99,13 @@ export function Toolbar({
   commentCount,
 }: ToolbarProps): React.ReactElement {
   const router = useRouter();
-  const { setSidePanel, setAnalysisOpen, setCodeGenOpen, setDocsOpen, setVersionOpen, setShareOpen, setAiGenerateOpen, setImportOpen, setCheatSheetOpen } = useEditorUI();
+  const { setSidePanel, setAnalysisOpen, setCodeGenOpen, setDocsOpen, setVersionOpen, setShareOpen, setReportOpen, setAiGenerateOpen, setImportOpen, setCheatSheetOpen } = useEditorUI();
   const [exportOpen, setExportOpen] = React.useState(false);
   const [fileOpen, setFileOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [viewOpen, setViewOpen] = React.useState(false);
   const [arrangeOpen, setArrangeOpen] = React.useState(false);
+  const [aiMenuOpen, setAiMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
     const handler = (): void => setExportOpen(true);
@@ -364,6 +366,7 @@ export function Toolbar({
         {iconAction("Toggle code panel", onToggleCodePanel, <Code2 className="h-4 w-4" />, codePanelOpen)}
         {iconAction("Share diagram", () => setShareOpen(true), <Share2 className="h-4 w-4" />)}
         {iconAction("Comments", () => useEditorUI.getState().setCommentsOpen(true), <MessageSquare className="h-4 w-4" />, commentCount > 0)}
+        {iconAction("Generate report", () => setReportOpen(true), <ClipboardList className="h-4 w-4" />)}
         <div className="h-6 w-px bg-gray-200" />
 
         <DropdownMenu open={exportOpen} onOpenChange={setExportOpen}>
@@ -391,14 +394,46 @@ export function Toolbar({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button size="sm" className="bg-[#0052CC] text-white hover:bg-[#0747A6]" onClick={() => setAiGenerateOpen(true)} aria-label="Generate diagram with AI">
-          <Sparkles className="h-4 w-4 mr-1" />
-          Generate
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setSidePanel("ai")} aria-label="Open AI assistant">
-          <Bot className="h-4 w-4 mr-1" />
-          AI Assistant
-        </Button>
+        <div className="flex items-center">
+          <Button
+            size="sm"
+            onClick={() => setSidePanel("ai")}
+            aria-label="AI Assist — chat to edit this diagram"
+            className="rounded-r-none"
+          >
+            <Bot className="h-4 w-4" />
+            AI Assist
+          </Button>
+          <DropdownMenu open={aiMenuOpen} onOpenChange={setAiMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                aria-label="More AI actions"
+                className="rounded-l-none border-l border-white/25 px-2"
+              >
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuLabel>AI actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => setSidePanel("ai")}>
+                <Bot className="h-3.5 w-3.5 text-gray-400" />
+                <span className="flex flex-col">
+                  <span className="font-medium">AI Assist</span>
+                  <span className="text-[11px] text-muted-foreground">Chat to edit the current diagram</span>
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setAiGenerateOpen(true)}>
+                <Sparkles className="h-3.5 w-3.5 text-gray-400" />
+                <span className="flex flex-col">
+                  <span className="font-medium">Generate new diagram…</span>
+                  <span className="text-[11px] text-muted-foreground">Start fresh from a description</span>
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   );

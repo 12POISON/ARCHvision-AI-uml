@@ -32,7 +32,7 @@ export function Hero({ authed = false }: { authed?: boolean }): React.ReactEleme
           <motion.div variants={fadeUp} custom={0} initial="hidden" animate="visible">
             <Badge variant="accent" className="mb-6 gap-2 px-4 py-1.5 text-[11px]">
               <Sparkles className="h-3 w-3" />
-              Backed by GPT-4o & Claude 3.5 architecture engines
+              From plain language to production-ready UML
             </Badge>
           </motion.div>
 

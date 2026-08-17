@@ -28,6 +28,7 @@ export interface NodeEditPatch {
   isInterface?: boolean;
   attributes?: ArchitectureAttribute[];
   methods?: ArchitectureMethod[];
+  notes?: string[];
   style?: {
     fill?: string;
     border?: string;
@@ -253,6 +254,7 @@ export function updateArchitectureNode(arch: Architecture, id: string, patch: No
   }
   if (patch.attributes !== undefined) next.attributes = patch.attributes;
   if (patch.methods !== undefined) next.methods = patch.methods;
+  if (patch.notes !== undefined) next.notes = patch.notes;
   if (patch.style !== undefined) next.style = patch.style;
 
   const nodes = arch.nodes.map((n) => (n.id === id ? next : n));

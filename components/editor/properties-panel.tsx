@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Trash2, Plus } from "lucide-react";
+import { Loader2, Sparkles, Trash2, Plus } from "lucide-react";
 import type { ArchitectureRelationshipType, ArchitectureNodeKind, Visibility } from "@/types/diagram";
 import { VALID_MULTIPLICITIES } from "@/types/diagram";
 import {
@@ -14,6 +14,7 @@ import {
   type NodeEditPatch,
   type RelationshipEditPatch,
 } from "@/lib/architecture/editing";
+import { describeNode, describeNodeLocal } from "@/lib/ai/describe";
 import { RELATION_SPECS_EXTENDED, RELATION_TYPE_ORDER } from "@/lib/editor/relations";
 import { cn } from "@/lib/utils";
 import type { DiagramEngine } from "@/hooks/useDiagram";
@@ -141,10 +142,26 @@ function SectionLabel({ children }: { children: React.ReactNode }): React.ReactE
 
 function NodeEditor({ engine }: { engine: DiagramEngine }): React.ReactElement | null {
   const node = engine.architecture.nodes.find((n) => n.id === engine.selectedNodeId);
+  const [describing, setDescribing] = React.useState(false);
+  const [describeMode, setDescribeMode] = React.useState<"online" | "offline" | null>(null);
   if (!node) return null;
 
   const patch = (p: NodeEditPatch): void => {
     engine.updateNode(node.id, p);
+  };
+
+  const generateDescription = async (): Promise<void> => {
+    setDescribing(true);
+    try {
+      const result = await describeNode(node, engine.architecture);
+      patch({ notes: [result.text] });
+      setDescribeMode(result.mode);
+    } catch {
+      patch({ notes: [describeNodeLocal(node, engine.architecture)] });
+      setDescribeMode("offline");
+    } finally {
+      setDescribing(false);
+    }
   };
 
   const setAttributes = (attributes: typeof node.attributes): void => patch({ attributes: attributes.map((a) => ({ ...a })) });
@@ -184,6 +201,32 @@ function NodeEditor({ engine }: { engine: DiagramEngine }): React.ReactElement |
           placeholder="Stereotype (e.g. entity, service)"
         />
       </div>
+
+      <div className="flex items-center justify-between">
+        <SectionLabel>Description</SectionLabel>
+        <button
+          type="button"
+          onClick={() => void generateDescription()}
+          disabled={describing}
+          className="mb-1.5 flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/5 disabled:opacity-50"
+        >
+          {describing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+          AI describe
+        </button>
+      </div>
+      <textarea
+        aria-label="Node description"
+        value={node.notes[0] ?? ""}
+        onChange={(e) => patch({ notes: [e.target.value] })}
+        placeholder="Describe this node's responsibility…"
+        rows={3}
+        className="h-auto w-full resize-y rounded-lg border border-line bg-white px-2 py-1.5 text-[12px] font-medium text-foreground outline-none transition-colors focus:border-primary/60"
+      />
+      {describeMode ? (
+        <p className="mt-1 text-[10.5px] text-muted-foreground">
+          {describeMode === "online" ? "Generated with GPT-4o / Claude" : "Offline mode — ArchVision's local extraction engine"}
+        </p>
+      ) : null}
 
       <SectionLabel>Style</SectionLabel>
       <div className="space-y-2">

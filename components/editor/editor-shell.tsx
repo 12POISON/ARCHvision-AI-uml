@@ -16,6 +16,7 @@ import { ValidationPanel } from "@/components/editor/validation-panel";
 import { AnalysisOverlay } from "@/components/editor/analysis-overlay";
 import { CodeGenModal } from "@/components/editor/codegen-modal";
 import { DocsModal } from "@/components/editor/docs-modal";
+import { ReportModal } from "@/components/editor/report-modal";
 import { MermaidRenderer } from "@/components/editor/mermaid-renderer";
 import { VersionHistoryModal } from "@/components/editor/version-history-modal";
 import { AIGenerateModal } from "@/components/editor/ai-generate-modal";
@@ -340,6 +341,13 @@ export function EditorShell({
         open={ui.docsOpen}
         onOpenChange={ui.setDocsOpen}
         mermaidCode={engine.mermaidCode}
+        diagramName={engine.name}
+        architecture={engine.architecture}
+      />
+      <ReportModal
+        open={ui.reportOpen}
+        onOpenChange={ui.setReportOpen}
+        diagramId={engine.diagramId}
         diagramName={engine.name}
         architecture={engine.architecture}
       />
