@@ -64,15 +64,6 @@ export class InMemoryRateLimiter implements RateLimiter {
   }
 }
 
-/**
- * @deprecated Sync in-memory limiter kept only so the pre-REST RPC routes
- * (app/api/storage and the legacy AI routes) continue to compile during the
- * REST refactor; they are deleted together with this wrapper.
- */
-export function rateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
-  return checkInMemory(key, limit, windowMs);
-}
-
 /* ----------------------------- Upstash ----------------------------- */
 
 interface UpstashCommandResult {

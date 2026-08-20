@@ -17,7 +17,7 @@ import { toast } from "@/components/ui/toast";
 /**
  * Storage facade — async, mode-aware.
  *
- *   NEXT_PUBLIC_DATA_MODE=db   -> PostgreSQL via /api/storage (production)
+ *   NEXT_PUBLIC_DATA_MODE=db   -> PostgreSQL via the REST API (production)
  *   otherwise (default)        -> localStorage (zero-infra demo)
  *
  * Every method returns a Promise so the same client code path works in
@@ -25,6 +25,21 @@ import { toast } from "@/components/ui/toast";
  * In db mode, a runtime health check runs at module init: if the database
  * is unreachable, the session transparently falls back to localStorage
  * (see checkDbHealth below).
+ *
+ * REST endpoints (all JSON, error shape { ok:false, error }):
+ *   GET    /api/projects
+ *   POST   /api/projects
+ *   GET    /api/diagrams?projectId=
+ *   GET    /api/projects/:projectId/diagrams
+ *   POST   /api/projects/:projectId/diagrams
+ *   GET|PATCH|DELETE /api/diagrams/:diagramId
+ *   GET|POST /api/diagrams/:diagramId/prompts
+ *   GET|POST /api/diagrams/:diagramId/validation
+ *   GET|POST /api/diagrams/:diagramId/versions
+ *   GET|POST /api/diagrams/:diagramId/changes
+ *
+ * Create calls send an Idempotency-Key so a retried request (e.g. after
+ * the 5s DB timeout) can never duplicate a diagram or version server-side.
  */
 
 const STORAGE_KEY = "archvision-store-v1";
@@ -104,53 +119,37 @@ function ensureSeeded(state: PersistedState): PersistedState {
   return state;
 }
 
-/* ------------------------- DB mode: proxied to /api/storage ------------------------- */
+/* ------------------------- DB mode: REST API ------------------------- */
 
-type RepositoryOp =
-  | "listProjects"
-  | "listDiagrams"
-  | "getDiagram"
-  | "createProject"
-  | "createDiagram"
-  | "updateDiagram"
-  | "deleteDiagram"
-  | "recordPrompt"
-  | "listPromptHistory"
-  | "saveValidation"
-  | "getValidation"
-  | "listVersions"
-  | "saveVersion"
-  | "recordsChange"
-  | "listChanges";
-
-async function callDb<T>(op: RepositoryOp, ...args: unknown[]): Promise<T> {
-  return dbRequest<T>(op, args, DB_CALL_TIMEOUT_MS);
+function baseUrl(): string {
+  return typeof window === "undefined" ? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000") : "";
 }
 
-async function callDbWithTimeout<T>(op: RepositoryOp, timeoutMs: number): Promise<T> {
-  return dbRequest<T>(op, [], timeoutMs);
-}
-
-async function dbRequest<T>(op: RepositoryOp, args: unknown[], timeoutMs: number | undefined): Promise<T> {
-  const base =
-    typeof window === "undefined" ? (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000") : "";
+async function api<T>(path: string, init: RequestInit = {}, timeoutMs?: number): Promise<T> {
   const controller = new AbortController();
   const timer = timeoutMs ? setTimeout(() => controller.abort(), timeoutMs) : null;
   try {
-    const res = await fetch(`${base}/api/storage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ op, payload: args.length <= 1 ? args[0] ?? null : args }),
+    const res = await fetch(`${baseUrl()}${path}`, {
+      ...init,
+      headers: { "Content-Type": "application/json", ...init.headers },
       signal: controller.signal,
     });
-    const json = (await res.json()) as { ok: boolean; data?: unknown; error?: string };
-    if (!res.ok || !json.ok) {
-      throw new Error(json.error ?? `Storage operation "${op}" failed`);
+    const json = (await res.json().catch(() => null)) as {
+      ok?: boolean;
+      data?: unknown;
+      error?: { code?: string; message?: string };
+    } | null;
+    if (!res.ok || !json?.ok) {
+      throw new Error(json?.error?.message ?? `Request to ${path} failed (${res.status})`);
     }
     return json.data as T;
   } finally {
     if (timer) clearTimeout(timer);
   }
+}
+
+function idempotencyKey(): string {
+  return `${generateId("idem")}`;
 }
 
 /* ----------------- DB health check: fall back to localStorage when the DB is unreachable ----------------- */
@@ -163,7 +162,7 @@ async function checkDbHealth(): Promise<boolean> {
   if (dbHealthCheck) return dbHealthCheck;
   dbHealthCheck = (async () => {
     try {
-      await callDbWithTimeout("listProjects", 3000);
+      await api("/api/projects", { method: "GET" }, 3000);
       dbAvailable = true;
     } catch (error) {
       console.warn("[storage] Database unreachable — falling back to localStorage for this session.", error);
@@ -183,12 +182,12 @@ if (typeof window !== "undefined") {
 
 /** DB-backed read with a bounded timeout and a localStorage fallback —
  *  the UI always gets data, even when the database is slow or down. */
-async function readWithFallback<T>(op: RepositoryOp, args: unknown[], local: () => T): Promise<T> {
+async function readWithFallback<T>(path: string, local: () => T): Promise<T> {
   if (DB_MODE && (await checkDbHealth())) {
     try {
-      return await dbRequest<T>(op, args, DB_CALL_TIMEOUT_MS);
+      return await api<T>(path, { method: "GET" }, DB_CALL_TIMEOUT_MS);
     } catch (error) {
-      console.warn(`[storage] DB read "${op}" failed — falling back to local data.`, error);
+      console.warn(`[storage] DB read "${path}" failed — falling back to local data.`, error);
       return local();
     }
   }
@@ -339,71 +338,111 @@ export const storage = {
   storageMode: (): "db" | "local" => (DB_MODE && dbAvailable ? "db" : "local"),
 
   async listProjects(): Promise<Project[]> {
-    return readWithFallback("listProjects", [], () => localListProjects());
+    return readWithFallback("/api/projects", () => localListProjects());
   },
   async listDiagrams(projectId: string | null): Promise<Diagram[]> {
-    return readWithFallback("listDiagrams", [projectId], () => localListDiagrams(projectId));
+    const path = projectId ? `/api/diagrams?projectId=${encodeURIComponent(projectId)}` : "/api/diagrams";
+    return readWithFallback(path, () => localListDiagrams(projectId));
   },
   async getDiagram(id: string): Promise<Diagram | null> {
-    return readWithFallback("getDiagram", [id], () => localGetDiagram(id));
+    return readWithFallback(`/api/diagrams/${encodeURIComponent(id)}`, () => localGetDiagram(id));
   },
   async createProject(input: { name: string; description?: string }): Promise<Project> {
-    if (DB_MODE && (await checkDbHealth())) return callDb("createProject", input);
+    if (DB_MODE && (await checkDbHealth())) {
+      return api<Project>("/api/projects", {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
+    }
     return localCreateProject(input);
   },
   async createDiagram(draft: DiagramDraft, projectId: string, mermaidCode?: string): Promise<Diagram> {
-    if (DB_MODE && (await checkDbHealth())) return callDb("createDiagram", draft, projectId, mermaidCode);
+    if (DB_MODE && (await checkDbHealth())) {
+      return api<Diagram>(`/api/projects/${encodeURIComponent(projectId)}/diagrams`, {
+        method: "POST",
+        headers: { "Idempotency-Key": idempotencyKey() },
+        body: JSON.stringify({
+          name: draft.name,
+          type: draft.type,
+          description: draft.description,
+          ...(mermaidCode !== undefined ? { mermaidCode } : {}),
+        }),
+      });
+    }
     return localCreateDiagram(draft, projectId, mermaidCode);
   },
   async updateDiagram(id: string, patch: Partial<Pick<Diagram, "name" | "mermaidCode" | "viewMode" | "isValid" | "validationScore">>): Promise<Diagram | null> {
-    if (DB_MODE && (await checkDbHealth())) return callDb("updateDiagram", id, patch);
+    if (DB_MODE && (await checkDbHealth())) {
+      return api<Diagram | null>(`/api/diagrams/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      });
+    }
     return localUpdateDiagram(id, patch);
   },
   async deleteDiagram(id: string): Promise<void> {
     if (DB_MODE && (await checkDbHealth())) {
-      await callDb("deleteDiagram", id);
+      await api<boolean>(`/api/diagrams/${encodeURIComponent(id)}`, { method: "DELETE" });
       return;
     }
     localDeleteDiagram(id);
   },
   async recordPrompt(entry: Omit<PromptHistoryEntry, "id" | "createdAt">): Promise<void> {
     if (DB_MODE && (await checkDbHealth())) {
-      await callDb("recordPrompt", entry);
+      await api(`/api/diagrams/${encodeURIComponent(entry.diagramId)}/prompts`, {
+        method: "POST",
+        body: JSON.stringify({ prompt: entry.prompt, response: entry.response, actionType: entry.actionType }),
+      });
       return;
     }
     localRecordPrompt(entry);
   },
   async listPromptHistory(diagramId: string): Promise<PromptHistoryEntry[]> {
-    return readWithFallback("listPromptHistory", [diagramId], () => localListPromptHistory(diagramId));
+    return readWithFallback(`/api/diagrams/${encodeURIComponent(diagramId)}/prompts`, () => localListPromptHistory(diagramId));
   },
   async saveValidation(diagramId: string, result: ValidationResult): Promise<void> {
     if (DB_MODE && (await checkDbHealth())) {
-      await callDb("saveValidation", diagramId, result);
+      await api(`/api/diagrams/${encodeURIComponent(diagramId)}/validation`, {
+        method: "POST",
+        body: JSON.stringify(result),
+      });
       return;
     }
     localSaveValidation(diagramId, result);
   },
   async getValidation(diagramId: string): Promise<Array<{ issues: ValidationIssue[]; score: number; createdAt: string }> | null> {
-    return readWithFallback("getValidation", [diagramId], () => localGetValidation(diagramId));
+    return readWithFallback(`/api/diagrams/${encodeURIComponent(diagramId)}/validation`, () => localGetValidation(diagramId));
   },
   async listVersions(diagramId: string): Promise<DiagramVersion[]> {
-    return readWithFallback("listVersions", [diagramId], () => localListVersions(diagramId));
+    return readWithFallback(`/api/diagrams/${encodeURIComponent(diagramId)}/versions`, () => localListVersions(diagramId));
   },
   async saveVersion(diagramId: string, version: DiagramVersion): Promise<void> {
     if (DB_MODE && (await checkDbHealth())) {
-      await callDb("saveVersion", diagramId, version);
+      await api(`/api/diagrams/${encodeURIComponent(diagramId)}/versions`, {
+        method: "POST",
+        headers: { "Idempotency-Key": idempotencyKey() },
+        body: JSON.stringify({
+          label: version.label,
+          mermaidCode: version.mermaidCode,
+          summary: version.summary,
+          changes: version.changes,
+        }),
+      });
       return;
     }
     localSaveVersion(diagramId, version);
   },
   async recordsChange(diagramId: string, summary: string): Promise<void> {
     if (DB_MODE && (await checkDbHealth())) {
-      await callDb("recordsChange", diagramId, summary);
+      await api(`/api/diagrams/${encodeURIComponent(diagramId)}/changes`, {
+        method: "POST",
+        body: JSON.stringify({ summary }),
+      });
       return;
     }
     localRecordsChange(diagramId, summary);
   },
   async listChanges(diagramId: string, limit = 30): Promise<Array<{ at: string; summary: string }>> {
-    return readWithFallback("listChanges", [diagramId, limit], () => localListChanges(diagramId, limit));
+    return readWithFallback(`/api/diagrams/${encodeURIComponent(diagramId)}/changes?limit=${limit}`, () => localListChanges(diagramId, limit));
   },
 };

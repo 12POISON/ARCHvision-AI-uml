@@ -103,9 +103,10 @@ async function tryOnline(payload: DescribePayload): Promise<DescribeResult | nul
     });
     clearTimeout(timer);
     if (!response.ok) return null;
-    const data = (await response.json()) as { text?: string };
-    if (!data.text || data.text.trim().length === 0) return null;
-    return { mode: "online", text: data.text.trim() };
+    const data = (await response.json()) as { text?: string; data?: { text?: string } };
+    const text = data.data?.text ?? data.text;
+    if (!text || text.trim().length === 0) return null;
+    return { mode: "online", text: text.trim() };
   } catch {
     return null;
   }
