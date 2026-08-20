@@ -47,6 +47,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   projects      Project[]
+  idempotencyRecords IdempotencyRecord[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -138,7 +139,10 @@ model DiagramVersion {
   changes     Json // string[] — human change notes for this snapshot
   createdAt   DateTime @default(now())
 
-  @@index([diagramId, version])
+  // Unique per diagram: the VersionService computes the next number from
+  // max+1 inside a transaction, and this constraint is the backstop that
+  // turns racing saves into a retryable conflict instead of a duplicate.
+  @@unique([diagramId, version])
 }
 
 model DiagramChangeLog {
@@ -149,6 +153,19 @@ model DiagramChangeLog {
   createdAt DateTime @default(now())
 
   @@index([diagramId])
+}
+
+model IdempotencyRecord {
+  id        String   @id @default(cuid())
+  key       String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    Int // stored HTTP status of the original response
+  body      Json // stored JSON body of the original response
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
+  @@index([createdAt])
 }
 
 enum DiagramType {

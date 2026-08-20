@@ -91,3 +91,8 @@ export type DiagramVersion = Prisma.DiagramVersionModel
  * 
  */
 export type DiagramChangeLog = Prisma.DiagramChangeLogModel
+/**
+ * Model IdempotencyRecord
+ * 
+ */
+export type IdempotencyRecord = Prisma.IdempotencyRecordModel

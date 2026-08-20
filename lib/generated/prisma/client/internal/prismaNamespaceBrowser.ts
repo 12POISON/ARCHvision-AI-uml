@@ -60,7 +60,8 @@ export const ModelName = {
   ValidationReport: 'ValidationReport',
   Export: 'Export',
   DiagramVersion: 'DiagramVersion',
-  DiagramChangeLog: 'DiagramChangeLog'
+  DiagramChangeLog: 'DiagramChangeLog',
+  IdempotencyRecord: 'IdempotencyRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -212,6 +213,18 @@ export const DiagramChangeLogScalarFieldEnum = {
 } as const
 
 export type DiagramChangeLogScalarFieldEnum = (typeof DiagramChangeLogScalarFieldEnum)[keyof typeof DiagramChangeLogScalarFieldEnum]
+
+
+export const IdempotencyRecordScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  userId: 'userId',
+  status: 'status',
+  body: 'body',
+  createdAt: 'createdAt'
+} as const
+
+export type IdempotencyRecordScalarFieldEnum = (typeof IdempotencyRecordScalarFieldEnum)[keyof typeof IdempotencyRecordScalarFieldEnum]
 
 
 export const SortOrder = {
