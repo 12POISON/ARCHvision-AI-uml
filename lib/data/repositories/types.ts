@@ -154,6 +154,30 @@ export interface IdempotencyRepository {
   purgeOlderThan(cutoff: Date): Promise<number>;
 }
 
+export type OrgRoleValue = "admin" | "editor" | "viewer" | "guest";
+
+export interface OrgRow {
+  id: string;
+  name: string;
+  /** The caller's role in this organization. */
+  callerRole: OrgRoleValue;
+  memberCount: number;
+  createdAt: string;
+}
+
+export interface OrgRepository {
+  /** Organizations the user belongs to, with their role. */
+  listForUser(userId: string): Promise<OrgRow[]>;
+  create(name: string, userId: string): Promise<OrgRow>;
+  /** Caller's role, or null when not a member (also for missing orgs — no existence leak). */
+  roleOf(orgId: string, userId: string): Promise<OrgRoleValue | null>;
+  /** Resolves a user by email for invitations; null when no such user. */
+  findUserIdByEmail(email: string): Promise<string | null>;
+  addMember(orgId: string, userId: string, role: OrgRoleValue): Promise<void>;
+  changeRole(orgId: string, userId: string, role: OrgRoleValue): Promise<void>;
+  removeMember(orgId: string, userId: string): Promise<void>;
+}
+
 /** Aggregate of every persistence port, plus transaction scoping. */
 export interface Repositories {
   projects: ProjectRepository;
@@ -161,6 +185,7 @@ export interface Repositories {
   versions: VersionRepository;
   validation: ValidationRepository;
   idempotency: IdempotencyRepository;
+  orgs: OrgRepository;
   /**
    * Run `fn` with transaction-scoped repositories. Fakes implement this
    * as a pass-through; the Prisma factory binds a $transaction client.

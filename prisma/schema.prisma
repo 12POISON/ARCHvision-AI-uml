@@ -48,8 +48,44 @@ model User {
   sessions      Session[]
   projects      Project[]
   idempotencyRecords IdempotencyRecord[]
+  memberships   WorkspaceMember[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+enum OrgRole {
+  admin
+  editor
+  viewer
+  guest
+}
+
+/// Multi-tenant workspace (Epic 3). Projects stay user-owned for now;
+/// organizations gate collaboration and will own shared projects when the
+/// real-time layer lands.
+model Organization {
+  id        String            @id @default(cuid())
+  name      String
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  members   WorkspaceMember[]
+
+  @@index([createdAt])
+}
+
+/// Role-based membership. (organizationId, userId) uniqueness makes joins
+/// race-safe; role changes are enforced at the service layer.
+model WorkspaceMember {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrgRole      @default(viewer)
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
 }
 
 model Project {

@@ -57,6 +57,19 @@ export type Session = Prisma.SessionModel
  */
 export type User = Prisma.UserModel
 /**
+ * Model Organization
+ * Multi-tenant workspace (Epic 3). Projects stay user-owned for now;
+ * organizations gate collaboration and will own shared projects when the
+ * real-time layer lands.
+ */
+export type Organization = Prisma.OrganizationModel
+/**
+ * Model WorkspaceMember
+ * Role-based membership. (organizationId, userId) uniqueness makes joins
+ * race-safe; role changes are enforced at the service layer.
+ */
+export type WorkspaceMember = Prisma.WorkspaceMemberModel
+/**
  * Model Project
  * 
  */

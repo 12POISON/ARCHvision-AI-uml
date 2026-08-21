@@ -8,6 +8,7 @@ import { diagramRepository } from "./diagram.repository";
 import { versionRepository } from "./version.repository";
 import { validationRepository } from "./validation.repository";
 import { idempotencyRepository } from "./idempotency.repository";
+import { orgRepository } from "./org.repository";
 
 /**
  * Repository factory — the ONLY place that talks to Prisma.
@@ -34,6 +35,7 @@ export function createRepositories(client: DbClient): Repositories {
     versions: versionRepository(client),
     validation: validationRepository(client),
     idempotency: idempotencyRepository(client),
+    orgs: orgRepository(client),
     withTransaction: <T>(fn: (tx: Repositories) => Promise<T>): Promise<T> =>
       client.$transaction(async (tx) => fn(createRepositories(tx as DbClient))),
   };

@@ -11,6 +11,8 @@
 export type * from './models/Account.ts'
 export type * from './models/Session.ts'
 export type * from './models/User.ts'
+export type * from './models/Organization.ts'
+export type * from './models/WorkspaceMember.ts'
 export type * from './models/Project.ts'
 export type * from './models/Diagram.ts'
 export type * from './models/PromptHistory.ts'

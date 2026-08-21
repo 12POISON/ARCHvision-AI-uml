@@ -217,6 +217,23 @@ function makeFakeRepos(): {
         return 0; // fake records carry no createdAt — nothing expires
       },
     },
+    orgs: {
+      async listForUser() {
+        return [];
+      },
+      async create(name, userId) {
+        return { id: "org_new", name, callerRole: "admin" as const, memberCount: 1, createdAt: new Date().toISOString() };
+      },
+      async roleOf() {
+        return null;
+      },
+      async findUserIdByEmail() {
+        return null;
+      },
+      async addMember() {},
+      async changeRole() {},
+      async removeMember() {},
+    },
     withTransaction: <T>(fn: (tx: Repositories) => Promise<T>): Promise<T> => fn(repos),
   };
 
