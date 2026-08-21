@@ -20,6 +20,7 @@ import { DIAGRAM_TYPES } from "@/types/diagram";
 import type { Architecture, ArchitectureNodeKind, ArchitectureRelationshipType, UMLModel } from "@/types/diagram";
 import { storage, StorageApiError } from "@/lib/data/storage";
 import { importOpenApi, OpenApiImportError } from "@/lib/importers/openapi";
+import { importDdl, DdlImportError } from "@/lib/importers/ddl";
 import { toast } from "@/components/ui/toast";
 import { extractModelFromText } from "@/lib/ai/mock-engine";
 import { describeModel } from "@/lib/ai/describe";
@@ -83,7 +84,7 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
   const [description, setDescription] = React.useState("");
   const [selectedProject, setSelectedProject] = React.useState("");
   const [type, setType] = React.useState<QuickType>("CLASS");
-  const [tab, setTab] = React.useState<"description" | "manual" | "openapi">("description");
+  const [tab, setTab] = React.useState<"description" | "manual" | "openapi" | "sql">("description");
   const [extracting, setExtracting] = React.useState(false);
   const [describing, setDescribing] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
@@ -93,6 +94,7 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
   const [manualNodes, setManualNodes] = React.useState<ManualNode[]>([]);
   const [manualRelationships, setManualRelationships] = React.useState<ManualRelationship[]>([]);
   const [openApiText, setOpenApiText] = React.useState("");
+  const [sqlText, setSqlText] = React.useState("");
 
   const openApiImport = React.useMemo(() => {
     if (openApiText.trim().length === 0) return null;
@@ -106,8 +108,24 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
     }
   }, [openApiText]);
 
+  const sqlImport = React.useMemo(() => {
+    if (sqlText.trim().length === 0) return null;
+    try {
+      return { result: importDdl(sqlText), error: null as string | null };
+    } catch (err) {
+      return {
+        result: null,
+        error: err instanceof DdlImportError ? err.message : "Could not parse this SQL script.",
+      };
+    }
+  }, [sqlText]);
+
   const onOpenApiFile = async (file: File): Promise<void> => {
     setOpenApiText(await file.text());
+  };
+
+  const onSqlFile = async (file: File): Promise<void> => {
+    setSqlText(await file.text());
   };
 
   React.useEffect(() => {
@@ -123,6 +141,7 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
       setManualNodes([{ name: "Entity", kind: "class" }]);
       setManualRelationships([]);
       setOpenApiText("");
+      setSqlText("");
     }
   }, [open, projectId, projects]);
 
@@ -205,6 +224,29 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
       if (tab === "manual" && manualArchitecture.nodes.length > 0) {
         finalMermaid = architectureToMermaid(manualArchitecture);
       }
+      if (tab === "sql") {
+        if (!sqlImport?.result) {
+          toast("error", sqlImport?.error ?? "Paste a SQL script with CREATE TABLE statements first.");
+          setCreating(false);
+          return;
+        }
+        const schemaName =
+          name.trim() ||
+          (() => {
+            const match = /create\s+table\s+(?:if\s+not\s+exists\s+)?[`"[]?([A-Za-z_][\w$.]*)/i.exec(sqlText);
+            const firstTable = match ? match[1].split(".").pop() : null;
+            return firstTable ? `${firstTable} schema` : "Imported Schema";
+          })();
+        const diagram = await storage.createDiagram(
+          { name: schemaName, type: "ER", description: "Generated from a SQL DDL script." },
+          targetProject,
+          sqlImport.result.erMermaid
+        );
+        void useWorkspaceStore.getState().reload();
+        router.push(`/editor/${diagram.id}`);
+        onOpenChange(false);
+        return;
+      }
       if (tab === "openapi") {
         if (!openApiImport?.result) {
           toast("error", openApiImport?.error ?? "Paste an OpenAPI specification first.");
@@ -283,9 +325,11 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
   const canCreate =
     tab === "openapi"
       ? Boolean(openApiImport?.result)
-      : tab === "manual"
-        ? manualArchitecture.nodes.length > 0
-        : Boolean(description.trim() || preview !== null);
+      : tab === "sql"
+        ? Boolean(sqlImport?.result)
+        : tab === "manual"
+          ? manualArchitecture.nodes.length > 0
+          : Boolean(description.trim() || preview !== null);
 
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
@@ -303,6 +347,7 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
               { id: "description", label: "AI description" },
               { id: "manual", label: "Manual info" },
               { id: "openapi", label: "Import OpenAPI" },
+              { id: "sql", label: "Import SQL" },
             ] as const
           ).map((option) => (
             <button
@@ -363,6 +408,59 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
               ) : null}
             </div>
           </div>
+
+          {tab === "sql" ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="nd-sql">SQL DDL script (PostgreSQL / MySQL)</Label>
+                <label className="cursor-pointer rounded-lg border border-line bg-white px-2 py-1 text-[11.5px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary">
+                  Choose file…
+                  <input
+                    type="file"
+                    accept=".sql,.txt"
+                    className="hidden"
+                    aria-label="Import SQL file"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void onSqlFile(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+              <Textarea
+                id="nd-sql"
+                value={sqlText}
+                onChange={(e) => setSqlText(e.target.value)}
+                placeholder={"Paste CREATE TABLE statements here, or choose a .sql file.\n\nCREATE TABLE users (\n  id BIGINT PRIMARY KEY,\n  email VARCHAR(255) NOT NULL\n);"}
+                rows={8}
+                className="font-mono text-[11.5px]"
+              />
+              {sqlImport?.error ? (
+                <p className="rounded-xl border border-error/20 bg-error/5 px-3 py-2 text-[12px] font-semibold text-error" role="alert">
+                  {sqlImport.error}
+                </p>
+              ) : null}
+              {sqlImport?.result ? (
+                <div className="rounded-2xl border border-accent-200/70 bg-accent-soft/60 px-4 py-3">
+                  <p className="text-[13px] font-bold text-teal-900">
+                    Ready to import — {sqlImport.result.stats.tables} tables,{" "}
+                    {sqlImport.result.stats.columns} columns, {sqlImport.result.stats.foreignKeys} foreign keys
+                  </p>
+                  <p className="mt-0.5 text-[11.5px] leading-snug text-teal-900/70">
+                    Creates one ER diagram with PK/FK markers and crowfoot cardinality.
+                  </p>
+                  {sqlImport.result.warnings.length > 0 ? (
+                    <ul className="mt-1 list-inside list-disc text-[11px] text-amber-700">
+                      {sqlImport.result.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {tab === "openapi" ? (
             <div className="space-y-3">
@@ -668,13 +766,15 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
               </>
             ) : tab === "openapi" ? (
               <Badge variant="outline">Architecture + flow from spec</Badge>
+            ) : tab === "sql" ? (
+              <Badge variant="outline">ER diagram from DDL</Badge>
             ) : (
               <Badge variant="outline">Class diagram (manual)</Badge>
             )}
             <Badge variant="outline" className="ml-auto">
               {tab === "manual"
                 ? "validated live"
-                : tab === "openapi"
+                : tab === "openapi" || tab === "sql"
                   ? "parsed locally — nothing uploaded"
                   : "auto-detect from text"}
             </Badge>
