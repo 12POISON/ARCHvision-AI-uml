@@ -19,7 +19,9 @@ clean artifacts.
 | Persistence | ⚠️ PostgreSQL in `db` mode; localStorage otherwise; **no public demo deployment yet** |
 | Sharing / real-time collaboration | 🚧 Roadmap — share dialog is preview-only |
 | Cloud icon library (AWS/GCP/Azure/K8s/Docker/Kafka/Redis) | ✅ Working — assign via node properties → "Cloud service icon" |
+| OpenAPI / Swagger importer | ✅ Working — "Create diagram → Import OpenAPI" (JSON/YAML, generates architecture + flow diagrams locally) |
 | C4 hierarchy | ✅ Core working — Mermaid `namespace` containers, double-click drill-down, breadcrumbs, "Contained in" reparenting |
+| GitHub repo & database DDL ingestion | 🚧 Roadmap |
 | C4 swimlane/group visuals, multi-level zoom animations | 🚧 Roadmap |
 
 ---
