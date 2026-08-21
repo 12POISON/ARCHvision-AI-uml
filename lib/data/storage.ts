@@ -236,7 +236,13 @@ async function readWithFallback<T>(path: string, local: () => T): Promise<T> {
     try {
       return await api<T>(path, { method: "GET" }, DB_CALL_TIMEOUT_MS);
     } catch (error) {
-      console.warn(`[storage] DB read "${path}" failed — falling back to local data.`, error);
+      console.warn(`[storage] DB read "${path}" failed — going offline for this session window.`, error);
+      // A failed read means the DB is unreachable RIGHT NOW. Flip the
+      // session offline so subsequent WRITES also go local — otherwise the
+      // UI shows cached rows while mutations target the DB, and entities
+      // from the cache 404 server-side ("not found or not yours").
+      dbAvailable = false;
+      lastFailedProbeAt = Date.now();
       return local();
     }
   }

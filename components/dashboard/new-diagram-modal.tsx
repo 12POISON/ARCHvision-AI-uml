@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DIAGRAM_TYPES } from "@/types/diagram";
 import type { Architecture, ArchitectureNodeKind, ArchitectureRelationshipType, UMLModel } from "@/types/diagram";
-import { storage } from "@/lib/data/storage";
+import { storage, StorageApiError } from "@/lib/data/storage";
 import { toast } from "@/components/ui/toast";
 import { extractModelFromText } from "@/lib/ai/mock-engine";
 import { describeModel } from "@/lib/ai/describe";
@@ -206,7 +206,17 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
       onOpenChange(false);
     } catch (err) {
       console.error("Create diagram failed", err);
-      toast("error", err instanceof Error ? `Couldn't create diagram: ${err.message}` : "Couldn't create diagram");
+      // A 404 here almost always means the project came from the offline
+      // cache and doesn't exist server-side — tell the user how to recover.
+      const isNotFound = err instanceof StorageApiError && err.code === "not_found";
+      toast(
+        "error",
+        isNotFound
+          ? "That project only exists in your browser's offline cache. Refresh the page to re-sync with the server, then try again."
+          : err instanceof Error
+            ? `Couldn't create diagram: ${err.message}`
+            : "Couldn't create diagram"
+      );
     } finally {
       setCreating(false);
     }
