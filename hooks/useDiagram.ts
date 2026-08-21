@@ -45,6 +45,7 @@ export interface EditorUIState {
   importOpen: boolean;
   commentsOpen: boolean;
   cheatSheetOpen: boolean;
+  adrsOpen: boolean;
   setSidePanel: (panel: EditorUIState["sidePanel"]) => void;
   setCodePanelOpen: (open: boolean) => void;
   setAnalysisOpen: (open: boolean) => void;
@@ -58,6 +59,7 @@ export interface EditorUIState {
   setImportOpen: (open: boolean) => void;
   setCommentsOpen: (open: boolean) => void;
   setCheatSheetOpen: (open: boolean) => void;
+  setAdrsOpen: (open: boolean) => void;
 }
 
 export const useEditorUI = create<EditorUIState>((set) => ({
@@ -74,6 +76,7 @@ export const useEditorUI = create<EditorUIState>((set) => ({
   importOpen: false,
   commentsOpen: false,
   cheatSheetOpen: false,
+  adrsOpen: false,
   setSidePanel: (sidePanel) => set({ sidePanel }),
   setCodePanelOpen: (codePanelOpen) => set({ codePanelOpen }),
   setAnalysisOpen: (analysisOpen) => set({ analysisOpen }),
@@ -87,6 +90,7 @@ export const useEditorUI = create<EditorUIState>((set) => ({
   setImportOpen: (importOpen) => set({ importOpen }),
   setCommentsOpen: (commentsOpen) => set({ commentsOpen }),
   setCheatSheetOpen: (cheatSheetOpen) => set({ cheatSheetOpen }),
+  setAdrsOpen: (adrsOpen) => set({ adrsOpen }),
 }));
 
 export interface DiagramEngine {

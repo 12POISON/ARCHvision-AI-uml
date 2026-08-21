@@ -36,6 +36,7 @@ import {
   RotateCcw,
   ScanSearch,
   Scissors,
+  ScrollText,
   Share2,
   ShieldCheck,
   Sparkles,
@@ -104,7 +105,7 @@ export function Toolbar({
   commentCount,
 }: ToolbarProps): React.ReactElement {
   const router = useRouter();
-  const { setSidePanel, setAnalysisOpen, setCodeGenOpen, setDocsOpen, setVersionOpen, setShareOpen, setReportOpen, setAiGenerateOpen, setImportOpen, setCheatSheetOpen } = useEditorUI();
+  const { setSidePanel, setAnalysisOpen, setCodeGenOpen, setDocsOpen, setVersionOpen, setShareOpen, setReportOpen, setAiGenerateOpen, setImportOpen, setCheatSheetOpen, setAdrsOpen, adrsOpen } = useEditorUI();
   const [exportOpen, setExportOpen] = React.useState(false);
   const [fileOpen, setFileOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
@@ -373,6 +374,7 @@ export function Toolbar({
         {iconAction("Share diagram", () => setShareOpen(true), <Share2 className="h-4 w-4" />)}
         {iconAction("Comments", () => useEditorUI.getState().setCommentsOpen(true), <MessageSquare className="h-4 w-4" />, commentCount > 0)}
         {iconAction("Generate report", () => setReportOpen(true), <ClipboardList className="h-4 w-4" />)}
+        {iconAction("Architecture decisions (ADR)", () => setAdrsOpen(true), <ScrollText className="h-4 w-4" />, adrsOpen)}
         <div className="h-6 w-px bg-gray-200" />
 
         <DropdownMenu open={exportOpen} onOpenChange={setExportOpen}>

@@ -17,6 +17,7 @@ import { AnalysisOverlay } from "@/components/editor/analysis-overlay";
 import { CodeGenModal } from "@/components/editor/codegen-modal";
 import { DocsModal } from "@/components/editor/docs-modal";
 import { ReportModal } from "@/components/editor/report-modal";
+import { AdrPanel } from "@/components/editor/adr-panel";
 import { MermaidRenderer } from "@/components/editor/mermaid-renderer";
 import { VersionHistoryModal } from "@/components/editor/version-history-modal";
 import { AIGenerateModal } from "@/components/editor/ai-generate-modal";
@@ -414,6 +415,13 @@ export function EditorShell({
         onSaveNow={(label) => engine.saveVersionNow(label)}
         onRestore={(version) => engine.restoreVersion(version)}
         onCloseAfterRestore={() => ui.setVersionOpen(false)}
+      />
+      <AdrPanel
+        open={ui.adrsOpen}
+        onClose={() => ui.setAdrsOpen(false)}
+        diagramId={engine.diagramId}
+        diagramName={engine.name}
+        nodeNames={engine.architecture.nodes.map((n) => n.name)}
       />
       <CommandPalette />
     </main>

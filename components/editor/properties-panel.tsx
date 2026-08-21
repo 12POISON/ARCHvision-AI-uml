@@ -17,9 +17,11 @@ import {
 import { describeNode, describeNodeLocal } from "@/lib/ai/describe";
 import { CLOUD_SERVICES, PROVIDER_LABELS, serviceIconForStereotype } from "@/lib/architecture/cloud-icons";
 import { descendantsOf } from "@/lib/architecture/hierarchy";
+import { adrsForNode, useAdrsStore } from "@/lib/editor/adrs";
+import { ScrollText } from "lucide-react";
 import { RELATION_SPECS_EXTENDED, RELATION_TYPE_ORDER } from "@/lib/editor/relations";
 import { cn } from "@/lib/utils";
-import type { DiagramEngine } from "@/hooks/useDiagram";
+import { useEditorUI, type DiagramEngine } from "@/hooks/useDiagram";
 
 interface PropertiesPanelProps {
   engine: DiagramEngine;
@@ -142,6 +144,32 @@ function SectionLabel({ children }: { children: React.ReactNode }): React.ReactE
   );
 }
 
+/** Read-only chips for ADRs bound to this node; opens the ADR panel on demand. */
+function NodeAdrChips({ diagramId, nodeName }: { diagramId: string; nodeName: string }): React.ReactElement | null {
+  const adrs = useAdrsStore((s) => s.adrs);
+  const setAdrsOpen = useEditorUI((s) => s.setAdrsOpen);
+  const linked = adrsForNode(adrs, diagramId, nodeName);
+  if (linked.length === 0) return null;
+  return (
+    <div className="mt-3 space-y-1">
+      {linked.map((adr) => (
+        <button
+          key={adr.id}
+          type="button"
+          onClick={() => setAdrsOpen(true)}
+          className="flex w-full items-center gap-1.5 rounded-lg border border-line bg-surface px-2 py-1.5 text-left text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+          title="Open architecture decisions"
+        >
+          <ScrollText className="h-3 w-3 shrink-0" />
+          <span className="truncate">
+            ADR {adr.number}. {adr.title}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function NodeEditor({ engine }: { engine: DiagramEngine }): React.ReactElement | null {
   const node = engine.architecture.nodes.find((n) => n.id === engine.selectedNodeId);
   const [describing, setDescribing] = React.useState(false);
@@ -183,6 +211,7 @@ function NodeEditor({ engine }: { engine: DiagramEngine }): React.ReactElement |
       </div>
 
       <SectionLabel>Identity</SectionLabel>
+      <NodeAdrChips diagramId={engine.diagramId} nodeName={node.name} />
       <div className="space-y-2">
         <TextInput
           ariaLabel="Node name"
