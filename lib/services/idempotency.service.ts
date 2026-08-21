@@ -24,6 +24,9 @@ export interface IdempotencyResult<T> {
   body: T;
 }
 
+const RECORD_TTL_MS = 24 * 60 * 60 * 1000; // docs contract: records expire after 24h
+const PURGE_PROBABILITY = 0.02; // ~2% of writes also sweep expired rows
+
 export class IdempotencyService {
   private readonly repos: Repositories;
 
@@ -36,6 +39,15 @@ export class IdempotencyService {
     userId: string,
     produce: () => Promise<{ status: number; body: T }>
   ): Promise<IdempotencyResult<T>> {
+    // Opportunistic expiry sweep — keeps the table bounded without a cron.
+    if (Math.random() < PURGE_PROBABILITY) {
+      try {
+        await this.repos.idempotency.purgeOlderThan(new Date(Date.now() - RECORD_TTL_MS));
+      } catch {
+        // Sweeping is best-effort; never block the request on it.
+      }
+    }
+
     const existing = await this.repos.idempotency.find(key, userId);
     if (existing) {
       return { replayed: true, status: existing.status, body: existing.body as T };

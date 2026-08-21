@@ -253,7 +253,7 @@
         "summary": "List the caller's projects",
         "parameters": [{ "$ref": "#/components/parameters/Limit" }, { "$ref": "#/components/parameters/Offset" }],
         "responses": {
-          "200": { "description": "Projects", "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "const": true }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } } } } } } },
+          "200": { "description": "Projects (X-Total-Count carries the caller's total)", "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "const": true }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } } } } } } },
           "401": { "$ref": "#/components/responses/ErrorResponse" },
           "429": { "$ref": "#/components/responses/ErrorResponse" }
         }
@@ -269,6 +269,19 @@
           "400": { "$ref": "#/components/responses/ErrorResponse" },
           "401": { "$ref": "#/components/responses/ErrorResponse" },
           "403": { "$ref": "#/components/responses/ErrorResponse" },
+          "429": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/api/projects/{projectId}": {
+      "parameters": [{ "name": "projectId", "in": "path", "required": true, "schema": { "type": "string" } }],
+      "delete": {
+        "tags": ["projects"],
+        "summary": "Delete a project and all of its diagrams",
+        "description": "Diagram rows and their child resources (prompts, reports, versions, change log, exports) cascade in one transaction. 200 with data:false when the project is missing or not owned — existence is never leaked.",
+        "responses": {
+          "200": { "description": "Deleted flag", "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "const": true }, "data": { "type": "boolean" } } } } } },
+          "401": { "$ref": "#/components/responses/ErrorResponse" },
           "429": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }

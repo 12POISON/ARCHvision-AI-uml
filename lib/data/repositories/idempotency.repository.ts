@@ -41,5 +41,12 @@ export function idempotencyRepository(client: DbClient): IdempotencyRepository {
         throw error;
       }
     },
+
+    async purgeOlderThan(cutoff) {
+      const result = await client.idempotencyRecord.deleteMany({
+        where: { createdAt: { lt: cutoff } },
+      });
+      return result.count;
+    },
   };
 }

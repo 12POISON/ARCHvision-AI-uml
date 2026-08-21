@@ -88,6 +88,11 @@ function makeFakeRepos(): {
         return out;
       },
       async touch() {},
+      async remove(id) {
+        const before = state.projects.length;
+        state.projects = state.projects.filter((p) => p.id !== id);
+        if (state.projects.length === before) throw new RepoNotFoundError();
+      },
     },
     diagrams: {
       async list(projectId, userId) {
@@ -116,9 +121,11 @@ function makeFakeRepos(): {
         const { userId: _u, prompts: _p, changes: _c, ...out } = row;
         return out;
       },
-      async update(id, patch, userId) {
+      async update(id, patch, userId, expectedUpdatedAt) {
         const d = state.diagrams.get(id);
         if (!d || d.userId !== userId) return null;
+        // Conditional write — mirrors the real updateMany(WHERE token).
+        if (expectedUpdatedAt && d.updatedAt !== expectedUpdatedAt) return null;
         Object.assign(d, patch, { updatedAt: now() });
         const { userId: _u, prompts: _p, changes: _c, ...row } = d;
         return row;
@@ -206,6 +213,9 @@ function makeFakeRepos(): {
         }
         state.idempotency.set(id, result);
       },
+      async purgeOlderThan() {
+        return 0; // fake records carry no createdAt — nothing expires
+      },
     },
     withTransaction: <T>(fn: (tx: Repositories) => Promise<T>): Promise<T> => fn(repos),
   };
@@ -221,6 +231,18 @@ test("ProjectService enforces the per-user quota", async () => {
   await assert.rejects(service.create({ name: "three" }, "user-a"), ForbiddenError);
   // Different user is unaffected.
   await service.create({ name: "other" }, "user-b");
+});
+
+test("ProjectService.remove deletes only owned projects", async () => {
+  const { repos, state } = makeFakeRepos();
+  await repos.projects.create({ id: "project-1", name: "P", description: null }, "user-a");
+  const service = new ProjectService(repos);
+  // Not owned → false, nothing deleted (no existence leak).
+  assert.equal(await service.remove("project-1", "user-b"), false);
+  assert.equal(state.projects.length, 1);
+  assert.equal(await service.remove("missing", "user-a"), false);
+  assert.equal(await service.remove("project-1", "user-a"), true);
+  assert.equal(state.projects.length, 0);
 });
 
 test("DiagramService.create snapshots version 1 in the same transaction", async () => {

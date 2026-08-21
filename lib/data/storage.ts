@@ -29,6 +29,7 @@ import { toast } from "@/components/ui/toast";
  * REST endpoints (all JSON, error shape { ok:false, error }):
  *   GET    /api/projects
  *   POST   /api/projects
+ *   DELETE /api/projects/:projectId
  *   GET    /api/diagrams?projectId=
  *   GET    /api/projects/:projectId/diagrams
  *   POST   /api/projects/:projectId/diagrams
@@ -66,10 +67,17 @@ function load(): PersistedState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return EMPTY;
-    const state = JSON.parse(raw) as PersistedState;
-    if (!state.versions) state.versions = {};
-    if (!state.changeLog) state.changeLog = [];
-    return state;
+    // Backfill every collection: blobs written by older clients must not
+    // crash the writers below with "unshift of undefined".
+    const state = JSON.parse(raw) as Partial<PersistedState>;
+    return {
+      projects: state.projects ?? [],
+      diagrams: state.diagrams ?? [],
+      promptHistory: state.promptHistory ?? [],
+      validationReports: state.validationReports ?? [],
+      versions: state.versions ?? {},
+      changeLog: state.changeLog ?? [],
+    };
   } catch {
     return EMPTY;
   }
@@ -111,7 +119,10 @@ function seed(): PersistedState {
 }
 
 function ensureSeeded(state: PersistedState): PersistedState {
-  if (state.projects.length === 0 && state.diagrams.length === 0) {
+  // Demo seeding is a local-mode convenience only. In db mode the database
+  // is authoritative — planting demo rows into the fallback cache would
+  // surface phantom projects after a transient outage.
+  if (!DB_MODE && state.projects.length === 0 && state.diagrams.length === 0) {
     const seeded = seed();
     persist(seeded);
     return seeded;
@@ -140,11 +151,30 @@ async function api<T>(path: string, init: RequestInit = {}, timeoutMs?: number):
       error?: { code?: string; message?: string };
     } | null;
     if (!res.ok || !json?.ok) {
-      throw new Error(json?.error?.message ?? `Request to ${path} failed (${res.status})`);
+      throw new StorageApiError(
+        json?.error?.message ?? `Request to ${path} failed (${res.status})`,
+        json?.error?.code ?? "unknown",
+        res.status
+      );
     }
     return json.data as T;
   } finally {
     if (timer) clearTimeout(timer);
+  }
+}
+
+/** Error thrown by every failed REST call through the facade — carries the
+ *  server's stable error code and HTTP status so callers can branch (e.g.
+ *  code === "conflict" for a lost optimistic-concurrency race). */
+export class StorageApiError extends Error {
+  readonly code: string;
+  readonly status: number;
+
+  constructor(message: string, code: string, status: number) {
+    super(message);
+    this.name = "StorageApiError";
+    this.code = code;
+    this.status = status;
   }
 }
 
@@ -154,26 +184,45 @@ function idempotencyKey(): string {
 
 /* ----------------- DB health check: fall back to localStorage when the DB is unreachable ----------------- */
 
+const DB_HEALTH_COOLDOWN_MS = 15_000;
+
 let dbAvailable = DB_MODE;
-let dbHealthCheck: Promise<boolean> | null = null;
+let dbHealthProbe: Promise<boolean> | null = null;
+let lastFailedProbeAt = 0;
+
+async function probeDbHealth(): Promise<boolean> {
+  const wasAvailable = dbAvailable;
+  try {
+    await api("/api/projects", { method: "GET" }, 3000);
+    if (!wasAvailable && typeof window !== "undefined") {
+      toast("info", "Back online — saving to the database");
+    }
+    dbAvailable = true;
+  } catch (error) {
+    dbAvailable = false;
+    lastFailedProbeAt = Date.now();
+    // Toast only on the transition into offline mode — repeated probes
+    // while the database stays down must not spam the user.
+    if (wasAvailable && typeof window !== "undefined") {
+      toast("info", "Working offline — diagrams saved locally");
+    }
+    console.warn("[storage] Database unreachable — using localStorage until it recovers.", error);
+  }
+  return dbAvailable;
+}
 
 async function checkDbHealth(): Promise<boolean> {
   if (!DB_MODE) return false;
-  if (dbHealthCheck) return dbHealthCheck;
-  dbHealthCheck = (async () => {
-    try {
-      await api("/api/projects", { method: "GET" }, 3000);
-      dbAvailable = true;
-    } catch (error) {
-      console.warn("[storage] Database unreachable — falling back to localStorage for this session.", error);
-      dbAvailable = false;
-      if (typeof window !== "undefined") {
-        toast("info", "Working offline — diagrams saved locally");
-      }
-    }
-    return dbAvailable;
-  })();
-  return dbHealthCheck;
+  // Successes stay memoized; failures are retried after a cooldown so a
+  // transient outage never pins the whole session to localStorage.
+  if (dbAvailable) return true;
+  if (Date.now() - lastFailedProbeAt < DB_HEALTH_COOLDOWN_MS) return false;
+  if (!dbHealthProbe) {
+    dbHealthProbe = probeDbHealth().finally(() => {
+      dbHealthProbe = null;
+    });
+  }
+  return dbHealthProbe;
 }
 
 if (typeof window !== "undefined") {
@@ -258,21 +307,75 @@ function localCreateDiagram(draft: DiagramDraft, projectId: string, mermaidCode?
   persist(state);
   return diagram;
 }
-function localUpdateDiagram(id: string, patch: Partial<Pick<Diagram, "name" | "mermaidCode" | "viewMode" | "isValid" | "validationScore">>): Diagram | null {
+function localUpdateDiagram(
+  id: string,
+  patch: Partial<Pick<Diagram, "name" | "mermaidCode" | "viewMode" | "isValid" | "validationScore">> & {
+    expectedUpdatedAt?: string;
+  }
+): Diagram | null {
   const state = ensureSeeded(load());
   const diagram = state.diagrams.find((d) => d.id === id);
   if (!diagram) return null;
-  Object.assign(diagram, patch, { updatedAt: new Date().toISOString() });
+  // expectedUpdatedAt is a concurrency token, not a column.
+  const { expectedUpdatedAt: _token, ...fields } = patch;
+  void _token;
+  Object.assign(diagram, fields, { updatedAt: new Date().toISOString() });
   persist(state);
   return diagram;
 }
+/** Removes per-diagram localStorage artifacts owned by other modules:
+ *  node positions (canvas) and comments (comments store). Without this,
+ *  deleted diagrams leak keys forever. */
+function cleanupDiagramArtifacts(diagramId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(`archvision-positions-${diagramId}`);
+    const raw = window.localStorage.getItem("archvision:comments");
+    if (!raw) return;
+    const comments = JSON.parse(raw) as Record<string, unknown[]>;
+    if (comments[diagramId]) {
+      delete comments[diagramId];
+      window.localStorage.setItem("archvision:comments", JSON.stringify(comments));
+    }
+  } catch {
+    // Cleanup is best-effort.
+  }
+}
+
 function localDeleteDiagram(id: string): void {
   const state = ensureSeeded(load());
+  const removed = state.diagrams.find((d) => d.id === id);
   state.diagrams = state.diagrams.filter((d) => d.id !== id);
   state.promptHistory = state.promptHistory.filter((p) => p.diagramId !== id);
   state.validationReports = state.validationReports.filter((r) => r.diagramId !== id);
+  if (removed) {
+    const project = state.projects.find((p) => p.id === removed.projectId);
+    if (project) {
+      project.diagramCount = Math.max(0, project.diagramCount - 1);
+      project.updatedAt = new Date().toISOString();
+    }
+  }
   delete state.versions[id];
+  // The diagram is gone — drop its change-log entries too so a recreated
+  // id can never surface stale history.
+  state.changeLog = state.changeLog.filter((c) => c.diagramId !== id);
   persist(state);
+  cleanupDiagramArtifacts(id);
+}
+
+function localDeleteProject(projectId: string): void {
+  const state = ensureSeeded(load());
+  const diagramIds = new Set(
+    state.diagrams.filter((d) => d.projectId === projectId).map((d) => d.id)
+  );
+  state.diagrams = state.diagrams.filter((d) => d.projectId !== projectId);
+  state.projects = state.projects.filter((p) => p.id !== projectId);
+  state.promptHistory = state.promptHistory.filter((p) => !diagramIds.has(p.diagramId));
+  state.validationReports = state.validationReports.filter((r) => !diagramIds.has(r.diagramId));
+  state.changeLog = state.changeLog.filter((c) => !diagramIds.has(c.diagramId));
+  for (const id of diagramIds) delete state.versions[id];
+  persist(state);
+  for (const id of diagramIds) cleanupDiagramArtifacts(id);
 }
 function localRecordPrompt(entry: Omit<PromptHistoryEntry, "id" | "createdAt">): void {
   const state = ensureSeeded(load());
@@ -356,6 +459,13 @@ export const storage = {
     }
     return localCreateProject(input);
   },
+  async deleteProject(id: string): Promise<void> {
+    if (DB_MODE && (await checkDbHealth())) {
+      await api<boolean>(`/api/projects/${encodeURIComponent(id)}`, { method: "DELETE" });
+      return;
+    }
+    localDeleteProject(id);
+  },
   async createDiagram(draft: DiagramDraft, projectId: string, mermaidCode?: string): Promise<Diagram> {
     if (DB_MODE && (await checkDbHealth())) {
       return api<Diagram>(`/api/projects/${encodeURIComponent(projectId)}/diagrams`, {
@@ -371,7 +481,13 @@ export const storage = {
     }
     return localCreateDiagram(draft, projectId, mermaidCode);
   },
-  async updateDiagram(id: string, patch: Partial<Pick<Diagram, "name" | "mermaidCode" | "viewMode" | "isValid" | "validationScore">>): Promise<Diagram | null> {
+  async updateDiagram(
+    id: string,
+    patch: Partial<Pick<Diagram, "name" | "mermaidCode" | "viewMode" | "isValid" | "validationScore">> & {
+      /** Optimistic-concurrency token — a stale value yields 409 (StorageApiError.code === "conflict"). */
+      expectedUpdatedAt?: string;
+    }
+  ): Promise<Diagram | null> {
     if (DB_MODE && (await checkDbHealth())) {
       return api<Diagram | null>(`/api/diagrams/${encodeURIComponent(id)}`, {
         method: "PATCH",

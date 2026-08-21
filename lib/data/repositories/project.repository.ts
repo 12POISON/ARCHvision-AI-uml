@@ -78,5 +78,12 @@ export function projectRepository(client: DbClient): ProjectRepository {
         data: { updatedAt: new Date() },
       });
     },
+
+    async remove(id) {
+      // Diagram → Project is onDelete: Cascade, so every diagram and its
+      // child rows (prompts, reports, versions, change log, exports) are
+      // removed by the database in the same statement.
+      await client.project.delete({ where: { id } });
+    },
   };
 }

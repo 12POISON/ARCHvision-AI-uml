@@ -8,7 +8,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { Toolbar } from "@/components/editor/toolbar";
 import { Canvas } from "@/components/editor/canvas";
-import { PaletteSidebar } from "@/components/editor/palette-sidebar";
+import { PaletteSidebar, MY_TEMPLATES_KEY } from "@/components/editor/palette-sidebar";
 import { PropertiesPanel } from "@/components/editor/properties-panel";
 import { MonacoPanel } from "@/components/editor/monaco-panel";
 import { AISidebar } from "@/components/editor/ai-sidebar";
@@ -165,12 +165,20 @@ export function EditorShell({
       await exportDiagram(format as ExportFormat, container, engine.model, {
         filename: `${engine.name.replace(/\s+/g, "-").toLowerCase()}`,
       });
-      await storage.saveValidation(diagramId, engine.validation ?? { issues: [], score: 100 });
     } catch (err) {
       console.error("Export failed", err);
       toast("error", err instanceof Error ? `Export failed: ${err.message}` : "Export failed");
+      return;
     } finally {
       setExporting(null);
+    }
+    // Persisting the report is a separate concern — its failure must not
+    // claim the export itself failed.
+    try {
+      await storage.saveValidation(diagramId, engine.validation ?? { issues: [], score: 100 });
+    } catch (err) {
+      console.warn("Validation report not saved", err);
+      toast("error", "Diagram exported, but the validation report couldn't be saved");
     }
   };
 
@@ -245,13 +253,13 @@ export function EditorShell({
               }}
               onSaveTemplate={(code) => {
                 try {
-                  const existing = JSON.parse(window.localStorage.getItem("archvision:my-templates") ?? "[]") as Array<{ id: string; name: string; code: string }>;
+                  const existing = JSON.parse(window.localStorage.getItem(MY_TEMPLATES_KEY) ?? "[]") as Array<{ id: string; name: string; code: string }>;
                   const entry = {
                     id: `t_${Date.now().toString(36)}`,
                     name: engine.name,
                     code,
                   };
-                  window.localStorage.setItem("archvision:my-templates", JSON.stringify([entry, ...existing]));
+                  window.localStorage.setItem(MY_TEMPLATES_KEY, JSON.stringify([entry, ...existing]));
                 } catch {
                   /* storage unavailable */
                 }

@@ -112,13 +112,21 @@ export interface ProjectRepository {
   findOwned(id: string, userId: string): Promise<ProjectRow | null>;
   create(input: { id: string; name: string; description: string | null }, userId: string): Promise<ProjectRow>;
   touch(id: string): Promise<void>;
+  /** Deletes the project row; Diagram FK cascade removes its diagrams and children. */
+  remove(id: string): Promise<void>;
 }
 
 export interface DiagramRepository {
   list(projectId: string | null, userId: string, limit?: number, offset?: number): Promise<DiagramRow[]>;
   get(id: string, userId: string): Promise<DiagramRow | null>;
   create(data: DiagramCreateData): Promise<DiagramRow>;
-  update(id: string, patch: DiagramPatch, userId: string): Promise<DiagramRow | null>;
+  /**
+   * Partial update. When `expectedUpdatedAt` is provided the write is
+   * conditional on the stored row still carrying that exact value — a
+   * concurrent modification makes it a no-op (count 0 → null), which the
+   * service maps to 409. This keeps check-and-write race-free.
+   */
+  update(id: string, patch: DiagramPatch, userId: string, expectedUpdatedAt?: string): Promise<DiagramRow | null>;
   deleteCascade(id: string): Promise<void>;
   requireOwned(id: string, userId: string): Promise<void>;
   recordPrompt(diagramId: string, entry: { prompt: string; response: string; actionType: "generate" | "transform" | "analyze" | "explain" }): Promise<void>;
@@ -142,6 +150,8 @@ export interface ValidationRepository {
 export interface IdempotencyRepository {
   find(key: string, userId: string): Promise<{ status: number; body: unknown } | null>;
   record(key: string, userId: string, result: { status: number; body: unknown }): Promise<void>;
+  /** Opportunistic expiry: deletes records created before `cutoff`. */
+  purgeOlderThan(cutoff: Date): Promise<number>;
 }
 
 /** Aggregate of every persistence port, plus transaction scoping. */

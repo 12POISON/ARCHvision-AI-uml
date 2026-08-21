@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { DIAGRAM_TYPES } from "@/types/diagram";
 import type { Architecture, ArchitectureNodeKind, ArchitectureRelationshipType, UMLModel } from "@/types/diagram";
 import { storage } from "@/lib/data/storage";
+import { toast } from "@/components/ui/toast";
 import { extractModelFromText } from "@/lib/ai/mock-engine";
 import { describeModel } from "@/lib/ai/describe";
 import { modelToMermaid } from "@/lib/mermaid/parser";
@@ -84,6 +85,7 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
   const [tab, setTab] = React.useState<"description" | "manual">("description");
   const [extracting, setExtracting] = React.useState(false);
   const [describing, setDescribing] = React.useState(false);
+  const [creating, setCreating] = React.useState(false);
   const [preview, setPreview] = React.useState<ScopeEntity[] | null>(null);
   const [extractedModel, setExtractedModel] = React.useState<UMLModel | null>(null);
   const [mermaidPreview, setMermaidPreview] = React.useState<string | null>(null);
@@ -177,27 +179,36 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
   const createDiagram = async (): Promise<void> => {
     const targetProject = selectedProject || projects[0]?.id;
     if (!targetProject) return;
-    let finalMermaid: string | undefined = mermaidPreview ?? undefined;
-    if (tab === "manual" && manualArchitecture.nodes.length > 0) {
-      finalMermaid = architectureToMermaid(manualArchitecture);
-    }
-    const finalName =
-      name.trim() ||
-      (preview
-        ? "Diagram from description"
-        : tab === "manual"
-          ? "Class Diagram"
-          : type === "CLASS"
+    setCreating(true);
+    try {
+      let finalMermaid: string | undefined = mermaidPreview ?? undefined;
+      if (tab === "manual" && manualArchitecture.nodes.length > 0) {
+        finalMermaid = architectureToMermaid(manualArchitecture);
+      }
+      const finalName =
+        name.trim() ||
+        (preview
+          ? "Diagram from description"
+          : tab === "manual"
             ? "Class Diagram"
-            : type === "SEQUENCE"
-              ? "Sequence Diagram"
-              : "ER Diagram");
-    const diagram = await storage.createDiagram(
-      { name: finalName, type: tab === "manual" ? "CLASS" : type, description },
-      targetProject,
-      finalMermaid
-    );
-    router.push(`/editor/${diagram.id}`);
+            : type === "CLASS"
+              ? "Class Diagram"
+              : type === "SEQUENCE"
+                ? "Sequence Diagram"
+                : "ER Diagram");
+      const diagram = await storage.createDiagram(
+        { name: finalName, type: tab === "manual" ? "CLASS" : type, description },
+        targetProject,
+        finalMermaid
+      );
+      router.push(`/editor/${diagram.id}`);
+      onOpenChange(false);
+    } catch (err) {
+      console.error("Create diagram failed", err);
+      toast("error", err instanceof Error ? `Couldn't create diagram: ${err.message}` : "Couldn't create diagram");
+    } finally {
+      setCreating(false);
+    }
   };
 
   const canCreate =
@@ -556,7 +567,8 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
                 </Button>
               </>
             ) : null}
-            <Button onClick={() => void createDiagram()} disabled={!canCreate} className="flex-1">
+            <Button onClick={() => void createDiagram()} disabled={!canCreate || creating} className="flex-1">
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               <Wand2 className="h-4 w-4" />
               Generate diagram
             </Button>

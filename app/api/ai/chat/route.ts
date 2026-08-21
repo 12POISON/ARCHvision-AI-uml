@@ -20,12 +20,20 @@ export const maxDuration = 60;
 export const POST = withApiHandler(
   async (ctx) => {
     const input = await ctx.body<AiChatRequest>();
-    return streamSse(async (writer) => {
-      await aiAssistService.streamChat(input, {
-        write: (event, data) => writer.write(event, data),
-        done: () => writer.end(),
-      });
-    });
+    return streamSse(
+      async (writer) => {
+        await aiAssistService.streamChat(input, {
+          write: (event, data) => writer.write(event, data),
+          done: () => {
+            // The documented contract ends with an explicit `done` frame
+            // BEFORE closing so clients can finish deterministically.
+            writer.write("done", "ok");
+            writer.end();
+          },
+        });
+      },
+      { signal: ctx.request.signal }
+    );
   },
   {
     auth: "required",

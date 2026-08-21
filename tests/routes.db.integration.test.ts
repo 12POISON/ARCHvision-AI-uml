@@ -24,7 +24,9 @@ let GET: typeof import("@/app/api/diagrams/[diagramId]/route").GET;
 let PATCH: typeof import("@/app/api/diagrams/[diagramId]/route").PATCH;
 let DELETE: typeof import("@/app/api/diagrams/[diagramId]/route").DELETE;
 let POST: typeof import("@/app/api/projects/route").POST;
+let DELETE_PROJECT: typeof import("@/app/api/projects/[projectId]/route").DELETE;
 let POST_DIAGRAMS: typeof import("@/app/api/projects/[projectId]/diagrams/route").POST;
+let GET_DIAGRAMS_ALL: typeof import("@/app/api/diagrams/route").GET;
 let HEALTH: typeof import("@/app/api/health/route").GET;
 let setAuth: (r: (() => Promise<{ user?: { id?: string } | null } | null>) | null) => void;
 
@@ -41,14 +43,18 @@ before(async () => {
   const handler = await import("@/lib/http/with-api-handler");
   setAuth = handler.__setAuthResolverForTests;
   const projects = await import("@/app/api/projects/route");
+  const projectItem = await import("@/app/api/projects/[projectId]/route");
   const diagramsByProject = await import("@/app/api/projects/[projectId]/diagrams/route");
+  const diagramsAll = await import("@/app/api/diagrams/route");
   const diagram = await import("@/app/api/diagrams/[diagramId]/route");
   const health = await import("@/app/api/health/route");
   GET = diagram.GET;
   PATCH = diagram.PATCH;
   DELETE = diagram.DELETE;
   POST = projects.POST;
+  DELETE_PROJECT = projectItem.DELETE;
   POST_DIAGRAMS = diagramsByProject.POST;
+  GET_DIAGRAMS_ALL = diagramsAll.GET;
   HEALTH = health.GET;
 
   const stamp = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -82,6 +88,13 @@ function api(path: string, init: RequestInit = {}): Promise<Response> {
   if (path.startsWith("/api/projects/") && method === "POST") {
     const projectId = path.match(/^\/api\/projects\/([^/]+)\/diagrams$/)?.[1] ?? "";
     return POST_DIAGRAMS(new Request(`http://localhost${path}`, init), { params: { projectId } });
+  }
+  if (path.startsWith("/api/projects/") && method === "DELETE") {
+    const projectId = path.match(/^\/api\/projects\/([^/]+)$/)?.[1] ?? "";
+    return DELETE_PROJECT(new Request(`http://localhost${path}`, init), { params: { projectId } });
+  }
+  if (path === "/api/diagrams" && method === "GET") {
+    return GET_DIAGRAMS_ALL(new Request(`http://localhost${path}`, init));
   }
   if (path.startsWith("/api/diagrams/") && method !== "GET") {
     const diagramId = path.match(/^\/api\/diagrams\/([^/]+)$/)?.[1] ?? "";
@@ -189,6 +202,47 @@ test("unauthenticated POST /api/projects returns 401", { skip: !HAS_DB }, async 
   } finally {
     setAuth(() => Promise.resolve({ user: { id: userId } }));
   }
+});
+
+test("DELETE /api/projects/:id removes the project and its diagrams, then reports false", { skip: !HAS_DB }, async (t) => {
+  if (!dbOk) return t.skip("DATABASE_URL not reachable");
+  // A dedicated project so the earlier fixtures stay untouched.
+  const createRes = await api("/api/projects", {
+    method: "POST",
+    body: JSON.stringify({ name: "Doomed project" }),
+  });
+  const created = (await createRes.json()) as { ok: boolean; data: { id: string } };
+  const doomedId = created.data.id;
+  await api(`/api/projects/${doomedId}/diagrams`, {
+    method: "POST",
+    body: JSON.stringify({ name: "Doomed diagram", type: "CLASS" }),
+  });
+
+  // Not-owned / missing ids return 200 data:false — no existence leak.
+  const missing = await api("/api/projects/does-not-exist", { method: "DELETE" });
+  assert.equal(missing.status, 200);
+  assert.equal(((await missing.json()) as { data: boolean }).data, false);
+
+  const res = await api(`/api/projects/${doomedId}`, { method: "DELETE" });
+  assert.equal(res.status, 200);
+  assert.equal(((await res.json()) as { data: boolean }).data, true);
+
+  // The diagram list no longer contains anything from the deleted project.
+  const diagramsRes = await api("/api/diagrams");
+  const diagramsBody = (await diagramsRes.json()) as {
+    ok: boolean;
+    data: Array<{ projectId: string }>;
+  };
+  assert.equal(
+    diagramsBody.data.some((d) => d.projectId === doomedId),
+    false,
+    "cascade must remove the project's diagrams"
+  );
+
+  // Deleting again is an honest false, not an error.
+  const again = await api(`/api/projects/${doomedId}`, { method: "DELETE" });
+  assert.equal(again.status, 200);
+  assert.equal(((await again.json()) as { data: boolean }).data, false);
 });
 
 test("GET /api/health reports the service as ok when the database responds", { skip: !HAS_DB }, async (t) => {

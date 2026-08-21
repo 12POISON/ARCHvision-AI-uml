@@ -12,8 +12,11 @@ export const GET = withApiHandler(
   async (ctx) => {
     assertDataModeEnabled();
     const page = parsePagination(ctx.query);
-    const projects = await projectService.list(ctx.user!.id, page);
-    return ctx.json(projects, { headers: totalCountHeader(projects.length) });
+    const [projects, total] = await Promise.all([
+      projectService.list(ctx.user!.id, page),
+      projectService.total(ctx.user!.id),
+    ]);
+    return ctx.json(projects, { headers: totalCountHeader(total) });
   },
   {
     auth: "required",

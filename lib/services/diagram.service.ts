@@ -93,12 +93,20 @@ export class DiagramService {
     userId: string,
     expectedUpdatedAt?: string
   ): Promise<DiagramRow | null> {
-    const existing = await this.repos.diagrams.get(id, userId);
-    if (!existing) return null;
-    if (expectedUpdatedAt && existing.updatedAt !== expectedUpdatedAt) {
-      throw new ConflictError("Diagram was modified by another session — reload and retry");
+    // The optimistic-concurrency token is enforced INSIDE the repository's
+    // conditional write (WHERE updatedAt = expected), so a concurrent
+    // modification can never slip between check and write.
+    const updated = await this.repos.diagrams.update(id, patch, userId, expectedUpdatedAt);
+    if (!updated && expectedUpdatedAt) {
+      // Distinguish "not yours/missing" (null row, no error) from a lost
+      // concurrency race only when the caller asked for the check.
+      const existing = await this.repos.diagrams.get(id, userId);
+      if (existing) {
+        throw new ConflictError("Diagram was modified by another session — reload and retry");
+      }
+      return null;
     }
-    return this.repos.diagrams.update(id, patch, userId);
+    return updated;
   }
 
   async remove(id: string, userId: string): Promise<boolean> {

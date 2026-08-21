@@ -75,9 +75,15 @@ export function diagramRepository(client: DbClient): DiagramRepository {
       return toDiagramRow(row);
     },
 
-    async update(id, patch: DiagramPatch, userId) {
+    async update(id, patch: DiagramPatch, userId, expectedUpdatedAt) {
+      // Conditional write: the optimistic-concurrency token is part of the
+      // WHERE clause, so check-and-update is one atomic statement.
       const result = await client.diagram.updateMany({
-        where: { id, project: { userId } },
+        where: {
+          id,
+          project: { userId },
+          ...(expectedUpdatedAt ? { updatedAt: new Date(expectedUpdatedAt) } : {}),
+        },
         data: { ...patch, updatedAt: new Date() },
       });
       if (result.count === 0) return null;

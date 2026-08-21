@@ -92,7 +92,7 @@ The app ships with a **two-mode storage layer** (`lib/data/storage.ts`):
 | Mode | When | Persistence |
 | --- | --- | --- |
 | `local` (default) | `NEXT_PUBLIC_DATA_MODE` unset | localStorage (zero-infra demo) |
-| `db` | `NEXT_PUBLIC_DATA_MODE=db` | PostgreSQL via Prisma → `/api/storage` |
+| `db` | `NEXT_PUBLIC_DATA_MODE=db` | PostgreSQL via Prisma → REST API (`/api/projects`, `/api/diagrams/...`) |
 
 Every read and write goes through the same async facade, so no feature code changes when you
 switch. The facade owns the **DB health check** and a **bounded timeout** on every call: if the
@@ -105,7 +105,7 @@ diagram" dropdown all consume the same `projects`/`diagrams` state — no second
 fetch anywhere. Creating a project instantly refreshes the dropdown (no page reload), in both
 modes.
 
-The Prisma repository (`lib/data/repository.ts`) is the server-side source of truth: projects,
+The repositories (`lib/data/repositories/*`) are the server-side source of truth: projects,
 diagrams, version history, change log, prompt history and validation reports. The demo seed is
 memoized per process and parallelized/batched, so first requests stay fast even on slow
 connections.
@@ -127,10 +127,11 @@ Production deploys run `npm run db:deploy` instead of `db:migrate`. Migrations l
 
 ## 🔒 Security
 
-- **Multi-tenancy at the query level:** the Prisma repository scopes every query to the
-  authenticated user, and `/api/storage` injects the user id from the session — payloads can
-  never spoof ownership (no IDOR).
-- **Rate limiting:** per-user in-memory limiter on storage + AI routes (`lib/rate-limit.ts`).
+- **Multi-tenancy at the query level:** the repositories scope every query to the
+  authenticated user, and the REST routes (`/api/projects`, `/api/diagrams/...`) inject the
+  user id from the session — payloads can never spoof ownership (no IDOR).
+- **Rate limiting:** per-caller limiter on every route (`lib/rate-limit.ts`) — in-memory by
+  default, Upstash/Redis via `RATE_LIMITER=upstash` for multi-instance deployments.
 - **CSPRNG ids:** all generated ids use `crypto.randomUUID` — no sequential/guessable ids.
 - **No hardcoded secrets:** `NEXTAUTH_SECRET` is required in production; dev auto-generates one.
 - **Transport headers:** CSP, HSTS, X-Frame-Options DENY, nosniff, strict referrer/permissions
@@ -145,7 +146,7 @@ Production deploys run `npm run db:deploy` instead of `db:migrate`. Migrations l
 | --- | --- |
 | `lib/data/workspace-store.ts` | Shared client store — single source of truth for workspace reads |
 | `lib/data/storage.ts` | Mode-aware storage facade (health check, timeouts, local fallback) |
-| `lib/data/repository.ts` | Prisma repository — PostgreSQL persistence + ownership scoping |
+| `lib/data/repositories/` | Prisma repositories — PostgreSQL persistence + ownership scoping |
 | `lib/mermaid/parser.ts` | `classDiagram` → typed `UMLModel` AST |
 | `lib/mermaid/transformer.ts` | AST ↔ ReactFlow nodes/edges (dagre layout) |
 | `lib/mermaid/validator.ts` | 7-rule validation + 100-point scoring |

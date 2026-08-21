@@ -88,6 +88,10 @@ export function AISidebar({ engine, open, onClose, mode }: AISidebarProps): Reac
     setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
     const isDiagramAction = action === "transform";
+    // The stream can emit meta {fallback:true} and then error in the SAME
+    // flush — React state hasn't re-rendered yet, so onError must read a
+    // ref, not the render-time `fallback` value.
+    const fallbackRef = { current: false };
     const full = await stream(
       {
         message,
@@ -102,16 +106,23 @@ export function AISidebar({ engine, open, onClose, mode }: AISidebarProps): Reac
             prev.map((m) => (m.id === assistantMessage.id ? { ...m, content: m.content + delta } : m))
           );
         },
+        onMeta: (meta) => {
+          if (meta.fallback) fallbackRef.current = true;
+        },
         onDone: (fullText) => {
           if (isDiagramAction && fullText.trim().length > 8) {
             engine.applyDiagram(fullText.trim());
           }
-          void storage.recordPrompt({
-            diagramId: engine.diagramId,
-            prompt: message,
-            response: fullText,
-            actionType: action === "explain" ? "explain" : action === "analyze" ? "analyze" : action === "transform" ? "transform" : "generate",
-          });
+          // Prompt history is auxiliary — record best-effort and never
+          // let a failed write surface as an unhandled rejection.
+          storage
+            .recordPrompt({
+              diagramId: engine.diagramId,
+              prompt: message,
+              response: fullText,
+              actionType: action === "explain" ? "explain" : action === "analyze" ? "analyze" : action === "transform" ? "transform" : "generate",
+            })
+            .catch((err) => console.warn("[ai-sidebar] prompt history not saved", err));
         },
         onError: (errorMessage) => {
           setMessages((prev) =>
@@ -119,7 +130,7 @@ export function AISidebar({ engine, open, onClose, mode }: AISidebarProps): Reac
               m.id === assistantMessage.id
                 ? {
                     ...m,
-                    content: fallback
+                    content: fallbackRef.current
                       ? "Offline mode — local engine active. Your message was analyzed locally."
                       : `⚠️ ${errorMessage}`,
                   }

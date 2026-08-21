@@ -8,8 +8,9 @@ import { validateArchitecture } from "@/lib/architecture/validate";
 import { architectureToMermaid, architectureToLegacyForCanvas } from "@/lib/architecture/serialization";
 import { architectureToLegacy } from "@/lib/architecture/model";
 import { layoutModel, type UMLFlowEdge, type UMLFlowNode } from "@/lib/mermaid/transformer";
-import { storage } from "@/lib/data/storage";
+import { storage, StorageApiError } from "@/lib/data/storage";
 import { debounce } from "@/lib/utils";
+import { toast } from "@/components/ui/toast";
 import type { DiagramVersion } from "@/lib/architecture/versions";
 import { createVersion } from "@/lib/architecture/versions";
 import type { ArchitectureChange } from "@/lib/architecture/transforms";
@@ -156,6 +157,11 @@ export function useDiagram(diagramId: string): DiagramEngine {
   const persistRef = useRef(true);
   const hydratedRef = useRef(false);
   const mermaidCodeRef = useRef("");
+  /** Optimistic-concurrency token from the last known server state. */
+  const updatedAtRef = useRef<string | null>(null);
+  /** Last payload confirmed persisted — dedupes autosave after explicit saves. */
+  const lastPersistedRef = useRef<{ code: string; viewMode: ViewMode } | null>(null);
+  const lastErrorToastAtRef = useRef(0);
 
   useEffect(() => {
     mermaidCodeRef.current = mermaidCode;
@@ -201,6 +207,8 @@ export function useDiagram(diagramId: string): DiagramEngine {
       setType(diagram.type);
       setMode(diagram.viewMode);
       setMermaidCodeState(diagram.mermaidCode);
+      updatedAtRef.current = diagram.updatedAt;
+      lastPersistedRef.current = { code: diagram.mermaidCode, viewMode: diagram.viewMode };
       setVersions(await storage.listVersions(diagramId));
       setReady(true);
     })();
@@ -209,19 +217,71 @@ export function useDiagram(diagramId: string): DiagramEngine {
     };
   }, [diagramId]);
 
-  const persist = useCallback(
-    debounce((code: string, viewMode: ViewMode) => {
-      if (!persistRef.current || !hydratedRef.current) return;
-      setIsSaving(true);
-      void storage
-        .updateDiagram(diagramId, { mermaidCode: code, viewMode })
-        .then(() => {
-          setLastSaved(new Date());
-          setIsSaving(false);
-        })
-        .catch(() => setIsSaving(false));
-    }, 600),
-    [diagramId]
+  const warnSaveFailure = useCallback((err: unknown): void => {
+    console.warn("[editor] save failed", err);
+    const now = Date.now();
+    if (now - lastErrorToastAtRef.current < 10_000) return; // throttle
+    lastErrorToastAtRef.current = now;
+    toast("error", err instanceof Error && err.message ? `Couldn't save: ${err.message}` : "Couldn't save your changes");
+  }, []);
+
+  /**
+   * PATCH the server carrying the optimistic-concurrency token. On a lost
+   * race (409 conflict) the freshest token is fetched and the write is
+   * retried once — the client's code is the newest intent, so after one
+   * re-sync this session's edit wins. Returns true when persisted.
+   */
+  const savePatch = useCallback(
+    async (patch: { name?: string; mermaidCode?: string; viewMode?: ViewMode }): Promise<boolean> => {
+      const attempt = (): ReturnType<typeof storage.updateDiagram> =>
+        storage.updateDiagram(diagramId, {
+          ...patch,
+          ...(updatedAtRef.current ? { expectedUpdatedAt: updatedAtRef.current } : {}),
+        });
+      try {
+        let updated: Awaited<ReturnType<typeof storage.updateDiagram>>;
+        try {
+          updated = await attempt();
+        } catch (err) {
+          if (!(err instanceof StorageApiError) || err.code !== "conflict") throw err;
+          const fresh = await storage.getDiagram(diagramId);
+          if (!fresh) return false; // deleted elsewhere — nothing to save into
+          updatedAtRef.current = fresh.updatedAt;
+          updated = await attempt();
+        }
+        if (updated) updatedAtRef.current = updated.updatedAt;
+        if (patch.mermaidCode !== undefined || patch.viewMode !== undefined) {
+          lastPersistedRef.current = {
+            code: patch.mermaidCode ?? mermaidCodeRef.current,
+            viewMode: patch.viewMode ?? lastPersistedRef.current?.viewMode ?? "ENGINEERING",
+          };
+        } else if (updated) {
+          lastPersistedRef.current = { code: updated.mermaidCode, viewMode: updated.viewMode };
+        }
+        return true;
+      } catch (err) {
+        warnSaveFailure(err);
+        return false;
+      }
+    },
+    [diagramId, warnSaveFailure]
+  );
+
+  const persist = useMemo(
+    () =>
+      debounce((code: string, viewMode: ViewMode) => {
+        if (!persistRef.current || !hydratedRef.current) return;
+        // Skip when this exact payload is already on the server — explicit
+        // saves (applyChanges/restore/undo) trigger the autosave effect too.
+        if (lastPersistedRef.current?.code === code && lastPersistedRef.current.viewMode === viewMode) return;
+        setIsSaving(true);
+        void savePatch({ mermaidCode: code, viewMode })
+          .then((ok) => {
+            if (ok) setLastSaved(new Date());
+          })
+          .finally(() => setIsSaving(false));
+      }, 600),
+    [savePatch]
   );
 
   /* canonical model — single source of truth, derived from mermaid text */
@@ -250,8 +310,12 @@ export function useDiagram(diagramId: string): DiagramEngine {
     if (persistRef.current && hydratedRef.current) persist(mermaidCode, viewMode);
   }, [mermaidCode, viewMode, persist]);
 
-  const refreshVersions = useCallback(() => {
-    void storage.listVersions(diagramId).then(setVersions);
+  const refreshVersions = useCallback(async (): Promise<void> => {
+    try {
+      setVersions(await storage.listVersions(diagramId));
+    } catch {
+      // Keep showing the current list on a transient read failure.
+    }
   }, [diagramId]);
 
   const applyDiagram = useCallback((code: string) => {
@@ -385,13 +449,22 @@ export function useDiagram(diagramId: string): DiagramEngine {
       const next = applyChanges(current, changes);
       const code = architectureToMermaid(next);
       const nextVersion = createVersion(versions[0] ?? null, code, current, next, label);
-      void storage.saveVersion(diagramId, nextVersion);
-      void storage.updateDiagram(diagramId, { mermaidCode: code });
       persistRef.current = true;
       setMermaidCode(code);
-      void refreshVersions();
+      // Persist explicitly (snapshot + code), then refresh — awaiting the
+      // writes guarantees the version list can't resolve before the commit.
+      void (async () => {
+        try {
+          await storage.saveVersion(diagramId, nextVersion);
+          await savePatch({ mermaidCode: code });
+          setLastSaved(new Date());
+        } catch (err) {
+          warnSaveFailure(err);
+        }
+        await refreshVersions();
+      })();
     },
-    [diagramId, mermaidCode, versions, refreshVersions]
+    [diagramId, mermaidCode, versions, savePatch, warnSaveFailure, refreshVersions]
   );
 
   const saveVersionNow = useCallback(
@@ -399,10 +472,17 @@ export function useDiagram(diagramId: string): DiagramEngine {
       const current = parseArchitectureDiagram(mermaidCode).architecture;
       const previous = versions[0] ?? null;
       const version = createVersion(previous, mermaidCode, null, current, label);
-      void storage.saveVersion(diagramId, version);
-      void refreshVersions();
+      void (async () => {
+        try {
+          await storage.saveVersion(diagramId, version);
+          setLastSaved(new Date());
+        } catch (err) {
+          warnSaveFailure(err);
+        }
+        await refreshVersions();
+      })();
     },
-    [diagramId, mermaidCode, versions, refreshVersions]
+    [diagramId, mermaidCode, versions, warnSaveFailure, refreshVersions]
   );
 
   const restoreVersion = useCallback(
@@ -417,10 +497,18 @@ export function useDiagram(diagramId: string): DiagramEngine {
         restored,
         `Restored ${version.label}`
       );
-      void storage.saveVersion(diagramId, entry);
-      void refreshVersions();
+      void (async () => {
+        try {
+          await storage.saveVersion(diagramId, entry);
+          await savePatch({ mermaidCode: version.mermaidCode });
+          setLastSaved(new Date());
+        } catch (err) {
+          warnSaveFailure(err);
+        }
+        await refreshVersions();
+      })();
     },
-    [diagramId, mermaidCode, versions, refreshVersions]
+    [diagramId, mermaidCode, versions, savePatch, warnSaveFailure, refreshVersions]
   );
 
   return {

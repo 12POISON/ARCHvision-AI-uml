@@ -26,8 +26,13 @@ export const GET = withApiHandler(
       ]);
     } catch (error) {
       dbStatus = "down";
-      dbDetail = error instanceof Error ? error.message : "unknown";
-      ctx.log.warn("health check: database unreachable", { detail: dbDetail });
+      // Diagnostic only, never leak connection details (URLs/hosts).
+      dbDetail = error instanceof Error && error.message.includes("timed out")
+        ? "database check timed out"
+        : "database check failed";
+      ctx.log.warn("health check: database unreachable", {
+        detail: error instanceof Error ? error.message : "unknown",
+      });
     }
 
     const aiProvider = process.env.OPENAI_API_KEY

@@ -117,7 +117,7 @@ create version).
 | `NEXTAUTH_URL` / `AUTH_*`   | NextAuth session secret                        |
 | `OPENAI_API_KEY`            | AI describe/chat (provider selection)          |
 | `ANTHROPIC_API_KEY`         | AI describe/chat fallback provider             |
-| `ERROR_WEBHOOK_URL`         | Out-of-band error reporting                    |
+| `ERROR_REPORTING_URL`       | Out-of-band error reporting                    |
 | `DATABASE_MAX_OVERFLOW`     | Prisma pool overflow (optional)                |
 
 ## AI endpoints

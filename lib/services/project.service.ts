@@ -35,6 +35,11 @@ export class ProjectService {
     return this.repos.projects.list(userId, pagination?.limit, pagination?.offset);
   }
 
+  /** Total project count for the caller — powers the X-Total-Count header. */
+  async total(userId: string): Promise<number> {
+    return this.repos.projects.countByUser(userId);
+  }
+
   async create(input: { name: string; description?: string }, userId: string): Promise<ProjectRow> {
     const existing = await this.repos.projects.countByUser(userId);
     if (existing >= this.maxProjects) {
@@ -44,5 +49,19 @@ export class ProjectService {
       { id: generateId("project"), name: input.name, description: input.description ?? null },
       userId
     );
+  }
+
+  /**
+   * Delete a project and everything in it (diagrams + child rows cascade
+   * at the database level). Returns false for missing/not-owned projects —
+   * callers decide whether that is an error or a silent success.
+   */
+  async remove(projectId: string, userId: string): Promise<boolean> {
+    const owned = await this.repos.projects.findOwned(projectId, userId);
+    if (!owned) return false;
+    await this.repos.withTransaction(async (tx) => {
+      await tx.projects.remove(projectId);
+    });
+    return true;
   }
 }
