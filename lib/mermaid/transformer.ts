@@ -11,6 +11,8 @@ import { inferNodeKind } from "@/lib/architecture/model";
 export interface UMLNodeData {
   label: string;
   stereotype: string | null;
+  /** C4 container id — kept on node data so canvas round-trips preserve it. */
+  parentId: string | null;
   isAbstract: boolean;
   isInterface: boolean;
   kind: ArchitectureNodeKind;
@@ -58,6 +60,7 @@ function buildNode(cls: UMLClass, position: { x: number; y: number }, viewMode: 
     data: {
       label: cls.name,
       stereotype: cls.stereotype,
+      parentId: cls.parentId ?? null,
       isAbstract: cls.isAbstract,
       isInterface: cls.isInterface,
       kind,
@@ -124,6 +127,7 @@ export function flowToModel(nodes: UMLFlowNode[], edges: UMLFlowEdge[], fallback
     id: node.id,
     name: node.data.label,
     stereotype: node.data.stereotype,
+    parentId: node.data.parentId ?? null,
     attributes: node.data.attributes,
     methods: node.data.methods,
     isAbstract: node.data.isAbstract,

@@ -1044,6 +1044,10 @@ function CanvasInner({ diagramId, engine }: CanvasProps): React.ReactElement {
           fitViewOptions={{ padding: 0.2, duration: 600 }}
           onSelectionChange={onSelectionChange}
           onConnect={onConnect}
+          onNodeDoubleClick={(_, node) => {
+            // C4 drill-down: double-clicking a container focuses its subtree.
+            if (engine.canDrillInto(node.id)) engine.drillDown(node.id);
+          }}
           onNodesDelete={onNodesDelete}
           onEdgesDelete={onEdgesDelete}
           onDragOver={onDragOver}

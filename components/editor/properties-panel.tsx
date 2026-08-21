@@ -16,6 +16,7 @@ import {
 } from "@/lib/architecture/editing";
 import { describeNode, describeNodeLocal } from "@/lib/ai/describe";
 import { CLOUD_SERVICES, PROVIDER_LABELS, serviceIconForStereotype } from "@/lib/architecture/cloud-icons";
+import { descendantsOf } from "@/lib/architecture/hierarchy";
 import { RELATION_SPECS_EXTENDED, RELATION_TYPE_ORDER } from "@/lib/editor/relations";
 import { cn } from "@/lib/utils";
 import type { DiagramEngine } from "@/hooks/useDiagram";
@@ -200,6 +201,21 @@ function NodeEditor({ engine }: { engine: DiagramEngine }): React.ReactElement |
           value={node.stereotype ?? ""}
           onChange={(v) => patch({ stereotype: v.trim() ? v : null })}
           placeholder="Stereotype (e.g. entity, service)"
+        />
+        <Select
+          ariaLabel="Contained in"
+          value={node.parentId ?? ""}
+          onChange={(v) => patch({ parentId: v || null })}
+          options={[
+            { value: "", label: "Top level (no container)" },
+            ...engine.architecture.nodes
+              .filter(
+                (n) =>
+                  n.id !== node.id &&
+                  !descendantsOf(engine.architecture, node.id).some((d) => d.id === n.id)
+              )
+              .map((n) => ({ value: n.id, label: n.name })),
+          ]}
         />
         <div>
           <p className="mb-1 mt-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">

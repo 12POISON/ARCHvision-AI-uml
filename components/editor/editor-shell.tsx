@@ -235,6 +235,41 @@ export function EditorShell({
         </div>
       </div>
 
+      {engine.breadcrumb.length > 0 ? (
+        <nav
+          aria-label="Diagram hierarchy"
+          className="flex shrink-0 items-center gap-0.5 border-b border-line bg-surface px-4 py-1.5 text-[12px]"
+        >
+          <button
+            type="button"
+            onClick={() => engine.drillUpTo(null)}
+            className="rounded-md px-1.5 py-0.5 font-semibold text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary"
+          >
+            All levels
+          </button>
+          {engine.breadcrumb.map((crumb, i) => {
+            const last = i === engine.breadcrumb.length - 1;
+            return (
+              <span key={crumb.id} className="flex items-center gap-0.5">
+                <span className="text-slate-300">/</span>
+                {last ? (
+                  <span className="rounded-md bg-primary/10 px-1.5 py-0.5 font-bold text-primary">{crumb.name}</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => engine.drillUpTo(crumb.id)}
+                    className="rounded-md px-1.5 py-0.5 font-semibold text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary"
+                  >
+                    {crumb.name}
+                  </button>
+                )}
+              </span>
+            );
+          })}
+          <span className="ml-2 text-[11px] text-muted-foreground">double-click a container to drill in</span>
+        </nav>
+      ) : null}
+
       <div className="flex min-h-0 flex-1">
         <div className="relative min-w-0 flex-1 bg-[radial-gradient(circle_at_1px_1px,rgba(15,23,42,0.08)_1px,transparent_0)] bg-[size:24px_24px]">
           {isClassModel ? (

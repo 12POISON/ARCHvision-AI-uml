@@ -15,6 +15,11 @@ import type { DiagramVersion } from "@/lib/architecture/versions";
 import { createVersion } from "@/lib/architecture/versions";
 import type { ArchitectureChange } from "@/lib/architecture/transforms";
 import { applyChanges } from "@/lib/architecture/transforms";
+import {
+  ancestorChain,
+  canDrillInto as canDrillIntoHierarchy,
+  focusArchitecture,
+} from "@/lib/architecture/hierarchy";
 import type { ArchitectureNodeKind, ArchitectureRelationshipType } from "@/types/diagram";
 import type { NodeEditPatch, RelationshipEditPatch } from "@/lib/architecture/editing";
 import {
@@ -130,6 +135,14 @@ export interface DiagramEngine {
   redo: () => void;
   isSaving: boolean;
   lastSaved: Date | null;
+  /* ---- C4 hierarchy drill-down (Epic 2) ---- */
+  /** Focused container id, or null for the full model. */
+  focusNodeId: string | null;
+  /** Ancestor chain ending at the focused node — breadcrumb order. */
+  breadcrumb: Array<{ id: string; name: string }>;
+  canDrillInto: (nodeId: string) => boolean;
+  drillDown: (nodeId: string) => void;
+  drillUpTo: (nodeId: string | null) => void;
 }
 
 const HISTORY_LIMIT = 50;
@@ -151,6 +164,8 @@ export function useDiagram(diagramId: string): DiagramEngine {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  /** C4 drill-down focus — null shows the whole model. */
+  const [focusId, setFocusId] = useState<string | null>(null);
   const historyRef = useRef<string[]>([]);
   const historyIndexRef = useRef(-1);
 
@@ -290,11 +305,20 @@ export function useDiagram(diagramId: string): DiagramEngine {
     return { architecture, error };
   }, [mermaidCode]);
 
+  // Drill-down is a pure view filter: layout/canvas show the focused
+  // subtree, while validation and analysis keep operating on the FULL model.
+  const visibleArchitecture = useMemo(() => focusArchitecture(architecture, focusId), [architecture, focusId]);
+
+  // A focus target that no longer exists (deleted/renamed/undo) resets the view.
+  useEffect(() => {
+    if (focusId && !architecture.nodes.some((n) => n.id === focusId)) setFocusId(null);
+  }, [architecture, focusId]);
+
   useEffect(() => {
     setParseError(error);
   }, [error]);
 
-  const model = useMemo(() => architectureToLegacy(architecture), [architecture]);
+  const model = useMemo(() => architectureToLegacy(visibleArchitecture), [visibleArchitecture]);
 
   const { nodes, edges } = useMemo(
     () => layoutModel(model as Parameters<typeof layoutModel>[0], viewMode, "LR"),
@@ -353,13 +377,14 @@ export function useDiagram(diagramId: string): DiagramEngine {
 
   const addNode = useCallback(
     (kind: ArchitectureNodeKind, name?: string): string | null => {
-      const { arch, node } = addArchitectureNode(architecture, kind, name);
+      // New nodes land inside the currently focused container (C4 context).
+      const { arch, node } = addArchitectureNode(architecture, kind, name, { parentId: focusId });
       commitArchitecture(arch);
       setSelectedNodeId(node.id);
       setSelectedEdgeId(null);
       return node.id;
     },
-    [architecture, commitArchitecture]
+    [architecture, commitArchitecture, focusId]
   );
 
   const updateNode = useCallback(
@@ -550,5 +575,18 @@ export function useDiagram(diagramId: string): DiagramEngine {
     redo,
     isSaving,
     lastSaved,
+    focusNodeId: focusId,
+    breadcrumb: useMemo(
+      () => (focusId ? ancestorChain(architecture, focusId).map((n) => ({ id: n.id, name: n.name })) : []),
+      [architecture, focusId]
+    ),
+    canDrillInto: useCallback((nodeId: string) => canDrillIntoHierarchy(architecture, nodeId), [architecture]),
+    drillDown: useCallback(
+      (nodeId: string) => {
+        if (canDrillIntoHierarchy(architecture, nodeId)) setFocusId(nodeId);
+      },
+      [architecture]
+    ),
+    drillUpTo: useCallback((nodeId: string | null) => setFocusId(nodeId), []),
   };
 }

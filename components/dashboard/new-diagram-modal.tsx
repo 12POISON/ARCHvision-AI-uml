@@ -146,6 +146,7 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
           name: cleanName,
           kind: node.kind,
           stereotype: null,
+          parentId: null,
           attributes: [],
           methods: [],
           isAbstract: false,
