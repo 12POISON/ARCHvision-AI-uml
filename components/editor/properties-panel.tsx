@@ -15,6 +15,7 @@ import {
   type RelationshipEditPatch,
 } from "@/lib/architecture/editing";
 import { describeNode, describeNodeLocal } from "@/lib/ai/describe";
+import { CLOUD_SERVICES, PROVIDER_LABELS, serviceIconForStereotype } from "@/lib/architecture/cloud-icons";
 import { RELATION_SPECS_EXTENDED, RELATION_TYPE_ORDER } from "@/lib/editor/relations";
 import { cn } from "@/lib/utils";
 import type { DiagramEngine } from "@/hooks/useDiagram";
@@ -200,6 +201,46 @@ function NodeEditor({ engine }: { engine: DiagramEngine }): React.ReactElement |
           onChange={(v) => patch({ stereotype: v.trim() ? v : null })}
           placeholder="Stereotype (e.g. entity, service)"
         />
+        <div>
+          <p className="mb-1 mt-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Cloud service icon
+          </p>
+          <div className="grid grid-cols-2 gap-1" role="listbox" aria-label="Cloud service icon">
+            {CLOUD_SERVICES.map((service) => {
+              const active = serviceIconForStereotype(node.stereotype)?.id === service.id;
+              const Glyph = service.icon;
+              return (
+                <button
+                  key={service.id}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  title={`${PROVIDER_LABELS[service.provider]} · ${service.label}`}
+                  onClick={() => patch({ stereotype: active ? null : service.id })}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg border px-1.5 py-1 text-left text-[10.5px] font-semibold transition-colors",
+                    active
+                      ? "border-primary/40 bg-primary/5 text-primary"
+                      : "border-line bg-white text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                  )}
+                >
+                  <span
+                    className="flex h-4 w-4 shrink-0 items-center justify-center rounded"
+                    style={{ backgroundColor: `${service.color}1A` }}
+                  >
+                    <Glyph className="h-3 w-3" style={{ color: service.color }} aria-hidden />
+                  </span>
+                  <span className="truncate">{service.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          {node.stereotype && !serviceIconForStereotype(node.stereotype) ? (
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              “{node.stereotype}” is a custom stereotype — pick a service above to give it an icon.
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex items-center justify-between">

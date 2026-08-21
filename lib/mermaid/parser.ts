@@ -240,8 +240,19 @@ export function parseMermaidClassDiagram(code: string): UMLModel {
     if (line.startsWith("namespace ")) continue;
 
     if (!line.includes("--") && !line.includes("..")) {
-      if (/^class\s+[A-Za-z_$][\w$]*$/i.test(line)) {
-        ensureClass(line.replace(/^class\s+/i, ""));
+      if (/^class\s+/i.test(line)) {
+        // Bare declarations AND annotated ones ("class Foo <<stereo>>") —
+        // previously the annotated form fell through and was dropped,
+        // losing the stereotype on round trip.
+        const { name, stereotype } = extractStereotype(line.replace(/^class\s+/i, ""));
+        if (/^[A-Za-z_$][\w$]*$/.test(name)) {
+          const cls = ensureClass(name);
+          if (stereotype) {
+            cls.stereotype = stereotype;
+            cls.isInterface = stereotype.toLowerCase() === "interface";
+            cls.isAbstract = stereotype.toLowerCase() === "abstract";
+          }
+        }
       }
       continue;
     }

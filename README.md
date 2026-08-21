@@ -8,6 +8,19 @@ clean artifacts.
 > localStorage persistence and ArchVision's local extraction engine power every feature. Add
 > keys/DBs and the same code paths switch to GPT-4o / Claude and PostgreSQL.
 
+## 📊 Honest status
+
+| Area | Status |
+| --- | --- |
+| Diagram engine (Mermaid ↔ canvas, editing, layout) | ✅ Working |
+| AI copilot (streaming chat, transforms, offline engine) | ✅ Working (needs your own API key for online mode) |
+| Validation, analysis, codegen, exports | ✅ Working |
+| Auth | ⚠️ OAuth via GitHub/Google when configured; demo user otherwise — no email/password |
+| Persistence | ⚠️ PostgreSQL in `db` mode; localStorage otherwise; **no public demo deployment yet** |
+| Sharing / real-time collaboration | 🚧 Roadmap — share dialog is preview-only |
+| Cloud icon library (AWS/GCP/Azure/K8s/Docker/Kafka/Redis) | ✅ Working — assign via node properties → "Cloud service icon" |
+| C4 hierarchy, multiplayer, repo/DB ingestion, CLI/VS Code | 🚧 Roadmap |
+
 ---
 
 ## ✨ Features
