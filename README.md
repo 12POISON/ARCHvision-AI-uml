@@ -22,6 +22,8 @@ clean artifacts.
 | OpenAPI / Swagger importer | ✅ Working — "Create diagram → Import OpenAPI" (JSON/YAML, generates architecture + flow diagrams locally) |
 | SQL DDL importer | ✅ Working — "Create diagram → Import SQL" (Postgres/MySQL CREATE TABLE → ER diagram with PK/FK + cardinality) |
 | Architecture Decision Records | ✅ Working — editor toolbar → ADR panel (Nygard markdown, node-linked, .md export; stored locally) |
+| Multi-tenant workspaces & RBAC | ✅ API shipped — orgs + admin/editor/viewer/guest roles (`/api/orgs`); UI wiring lands with real-time sync |
+| Real-time multiplayer (Yjs cursors/edits) | 🚧 Roadmap — needs a hosting decision (PartyKit vs self-hosted Yjs+ws) |
 | C4 hierarchy | ✅ Core working — Mermaid `namespace` containers, double-click drill-down, breadcrumbs, "Contained in" reparenting |
 | GitHub repo & database DDL ingestion | 🚧 Roadmap |
 | C4 swimlane/group visuals, multi-level zoom animations | 🚧 Roadmap |
