@@ -29,6 +29,7 @@ import {
   Minus,
   MoveDown,
   MoveRight,
+  PanelLeft,
   Plus,
   Printer,
   Redo2,
@@ -68,6 +69,8 @@ interface ToolbarProps {
   onExport: (format: string) => void;
   codePanelOpen: boolean;
   onToggleCodePanel: () => void;
+  paletteOpen: boolean;
+  onTogglePalette: () => void;
   engine: DiagramEngine;
   commentCount: number;
 }
@@ -95,6 +98,8 @@ export function Toolbar({
   onExport,
   codePanelOpen,
   onToggleCodePanel,
+  paletteOpen,
+  onTogglePalette,
   engine,
   commentCount,
 }: ToolbarProps): React.ReactElement {
@@ -358,6 +363,7 @@ export function Toolbar({
 
       {/* RIGHT ZONE — tools, export, generate, AI assistant */}
       <div className="flex items-center gap-1.5">
+        {iconAction("Shape palette (Ctrl B)", onTogglePalette, <PanelLeft className="h-4 w-4" />, paletteOpen)}
         {iconAction("UML validation", () => setSidePanel("validation"), <ShieldCheck className="h-4 w-4" />)}
         {iconAction("Architecture analysis", () => setAnalysisOpen(true), <ScanSearch className="h-4 w-4" />)}
         {iconAction("Generate source code", () => setCodeGenOpen(true), <FileCode2 className="h-4 w-4" />)}

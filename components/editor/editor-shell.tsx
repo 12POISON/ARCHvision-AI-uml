@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AnimatePresence } from "framer-motion";
-import { Loader2, Boxes } from "lucide-react";
+import { Loader2, Boxes, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/navbar";
 import { CommandPalette } from "@/components/layout/command-palette";
@@ -227,6 +227,8 @@ export function EditorShell({
             onExport={(f) => void handleExport(f)}
             codePanelOpen={ui.codePanelOpen}
             onToggleCodePanel={() => ui.setCodePanelOpen(!ui.codePanelOpen)}
+            paletteOpen={paletteOpen}
+            onTogglePalette={() => setPaletteOpen((open) => !open)}
             engine={engine}
             commentCount={commentCount}
           />
@@ -266,6 +268,17 @@ export function EditorShell({
               }}
               mermaidCode={engine.mermaidCode}
             />
+          ) : null}
+          {isClassModel && !paletteOpen ? (
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="Show shape palette (Ctrl B)"
+              title="Show shape palette (Ctrl B)"
+              className="absolute left-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl border border-line bg-white/90 text-slate-500 shadow-card backdrop-blur transition-all duration-200 hover:border-primary/40 hover:text-primary"
+            >
+              <PanelLeft className="h-4 w-4" />
+            </button>
           ) : null}
           {isClassModel ? <PropertiesPanel engine={engine} /> : null}
 
