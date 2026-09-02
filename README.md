@@ -30,6 +30,12 @@ clean artifacts.
 
 ---
 
+## 📸 Screenshots
+
+> Visual proof lives in [`docs/screenshots/`](docs/screenshots/) — 8 shots cover the happy path (dashboard → generate → canvas with cloud icons → C4 drill-down → validation → ADR → export → import preview). Drop PNGs per that folder's README and they render here automatically.
+
+---
+
 ## ✨ Features
 
 | Area | Capability |
