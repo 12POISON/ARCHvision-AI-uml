@@ -8,6 +8,7 @@ import { VersionService } from "./version.service";
 import { IdempotencyService } from "./idempotency.service";
 import { AiAssistService } from "./ai-assist.service";
 import { OrgService } from "./org.service";
+import { AuditLogService } from "./audit-log.service";
 
 /**
  * Production wiring — binds the Prisma-backed repositories to the
@@ -24,6 +25,7 @@ export const versionService = new VersionService(repos);
 export const idempotencyService = new IdempotencyService(repos);
 export const aiAssistService = new AiAssistService();
 export const orgService = new OrgService(repos);
+export const auditLogService = new AuditLogService(repos);
 
 export * from "./project.service";
 export * from "./diagram.service";
@@ -32,3 +34,4 @@ export * from "./version.service";
 export * from "./idempotency.service";
 export * from "./ai-assist.service";
 export * from "./org.service";
+export * from "./audit-log.service";

@@ -234,6 +234,14 @@ function makeFakeRepos(): {
       async changeRole() {},
       async removeMember() {},
     },
+    auditLogs: {
+      async append() {
+        return { id: "audit_1", organizationId: null, userId: "u", action: "x", targetType: null, targetId: null, metadata: null, createdAt: new Date().toISOString() };
+      },
+      async listForOrg() {
+        return [];
+      },
+    },
     withTransaction: <T>(fn: (tx: Repositories) => Promise<T>): Promise<T> => fn(repos),
   };
 

@@ -59,8 +59,16 @@ function makeRepos(usersByEmail: Record<string, string>): { repos: Repositories;
       org.members.delete(userId);
     },
   };
+  const auditLogs: Repositories["auditLogs"] = {
+    async append() {
+      return { id: "a1", organizationId: null, userId: "u", action: "x", targetType: null, targetId: null, metadata: null, createdAt: new Date().toISOString() };
+    },
+    async listForOrg() {
+      return [];
+    },
+  };
   return {
-    repos: { ...({} as Repositories), orgs: repo },
+    repos: { ...({} as Repositories), orgs: repo, auditLogs } as Repositories,
     orgs,
     nextId: () => `org_${counter + 1}`,
   };

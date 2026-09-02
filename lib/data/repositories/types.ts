@@ -178,6 +178,29 @@ export interface OrgRepository {
   removeMember(orgId: string, userId: string): Promise<void>;
 }
 
+export interface AuditLogRow {
+  id: string;
+  organizationId: string | null;
+  userId: string;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  metadata: unknown | null;
+  createdAt: string;
+}
+
+export interface AuditLogRepository {
+  append(params: {
+    organizationId?: string | null;
+    userId: string;
+    action: string;
+    targetType?: string | null;
+    targetId?: string | null;
+    metadata?: unknown | null;
+  }): Promise<AuditLogRow>;
+  listForOrg(organizationId: string, limit?: number, offset?: number): Promise<AuditLogRow[]>;
+}
+
 /** Aggregate of every persistence port, plus transaction scoping. */
 export interface Repositories {
   projects: ProjectRepository;
@@ -186,6 +209,7 @@ export interface Repositories {
   validation: ValidationRepository;
   idempotency: IdempotencyRepository;
   orgs: OrgRepository;
+  auditLogs: AuditLogRepository;
   /**
    * Run `fn` with transaction-scoped repositories. Fakes implement this
    * as a pass-through; the Prisma factory binds a $transaction client.

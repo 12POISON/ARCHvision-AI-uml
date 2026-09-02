@@ -49,6 +49,7 @@ model User {
   projects      Project[]
   idempotencyRecords IdempotencyRecord[]
   memberships   WorkspaceMember[]
+  auditLogs     AuditLog[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -69,6 +70,7 @@ model Organization {
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
   members   WorkspaceMember[]
+  auditLogs AuditLog[]
 
   @@index([createdAt])
 }
@@ -201,6 +203,25 @@ model IdempotencyRecord {
   createdAt DateTime @default(now())
 
   @@unique([userId, key])
+  @@index([createdAt])
+}
+
+/// Append-only audit trail for security compliance (Epic 6).
+/// Every membership mutation and future org-scoped action lands here.
+model AuditLog {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action         String
+  targetType     String?
+  targetId       String?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([userId])
   @@index([createdAt])
 }
 

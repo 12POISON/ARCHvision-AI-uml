@@ -29,7 +29,11 @@ export class OrgService {
   }
 
   async create(name: string, userId: string): Promise<OrgRow> {
-    return this.repos.orgs.create(name, userId);
+    const org = await this.repos.orgs.create(name, userId);
+    void this.repos.auditLogs
+      .append({ organizationId: org.id, userId, action: "org.create", targetType: "organization", targetId: org.id, metadata: { name } })
+      .catch(() => undefined);
+    return org;
   }
 
   /** Admin gate shared by every mutation. */
@@ -47,6 +51,9 @@ export class OrgService {
       throw new ForbiddenError(`${email} is already a member of this organization`);
     }
     await this.repos.orgs.addMember(orgId, targetId, role);
+    void this.repos.auditLogs
+      .append({ organizationId: orgId, userId: actorId, action: "org.invite", targetType: "user", targetId, metadata: { email, role } })
+      .catch(() => undefined);
     return { userId: targetId };
   }
 
@@ -62,6 +69,9 @@ export class OrgService {
       return;
     }
     await this.repos.orgs.changeRole(orgId, targetId, role);
+    void this.repos.auditLogs
+      .append({ organizationId: orgId, userId: actorId, action: "org.changeRole", targetType: "user", targetId, metadata: { email: targetEmail, role } })
+      .catch(() => undefined);
   }
 
   async removeMember(orgId: string, actorId: string, targetEmail: string): Promise<void> {
@@ -72,5 +82,8 @@ export class OrgService {
       throw new ForbiddenError("You cannot remove yourself — ask another admin to do it");
     }
     await this.repos.orgs.removeMember(orgId, targetId);
+    void this.repos.auditLogs
+      .append({ organizationId: orgId, userId: actorId, action: "org.removeMember", targetType: "user", targetId, metadata: { email: targetEmail } })
+      .catch(() => undefined);
   }
 }

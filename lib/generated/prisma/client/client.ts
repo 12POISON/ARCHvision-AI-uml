@@ -109,3 +109,9 @@ export type DiagramChangeLog = Prisma.DiagramChangeLogModel
  * 
  */
 export type IdempotencyRecord = Prisma.IdempotencyRecordModel
+/**
+ * Model AuditLog
+ * Append-only audit trail for security compliance (Epic 6).
+ * Every membership mutation and future org-scoped action lands here.
+ */
+export type AuditLog = Prisma.AuditLogModel
