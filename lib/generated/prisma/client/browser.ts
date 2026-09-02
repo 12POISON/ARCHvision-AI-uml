@@ -91,3 +91,13 @@ export type IdempotencyRecord = Prisma.IdempotencyRecordModel
  * Every membership mutation and future org-scoped action lands here.
  */
 export type AuditLog = Prisma.AuditLogModel
+/**
+ * Model Comment
+ * Canvas comments pinned to diagrams (async collab — persisted per diagram).
+ */
+export type Comment = Prisma.CommentModel
+/**
+ * Model Adr
+ * Architecture Decision Records persisted per diagram (async collab).
+ */
+export type Adr = Prisma.AdrModel

@@ -242,6 +242,23 @@ function makeFakeRepos(): {
         return [];
       },
     },
+    comments: {
+      async list() { return []; },
+      async create(_diagramId: string, authorId: string, text: string, x: number, y: number) {
+        return { id: "c1", diagramId: "d1", authorId, text, x, y, createdAt: new Date().toISOString() };
+      },
+      async delete() {},
+    },
+    adrs: {
+      async list() { return []; },
+      async create(_diagramId: string, _authorId: string, data: { title: string; status: string; context: string; decision: string; consequences: string; linkedNodes: string[] }) {
+        return { id: "a1", diagramId: "d1", number: 1, title: data.title, status: data.status, context: data.context, decision: data.decision, consequences: data.consequences, linkedNodes: data.linkedNodes, authorId: "u", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+      },
+      async update(_id: string, _userId: string, patch: Partial<{ title: string }>) {
+        return { id: "a1", diagramId: "d1", number: 1, title: patch.title ?? "t", status: "proposed", context: "", decision: "", consequences: "", linkedNodes: [], authorId: "u", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+      },
+      async delete() {},
+    },
     withTransaction: <T>(fn: (tx: Repositories) => Promise<T>): Promise<T> => fn(repos),
   };
 

@@ -201,6 +201,44 @@ export interface AuditLogRepository {
   listForOrg(organizationId: string, limit?: number, offset?: number): Promise<AuditLogRow[]>;
 }
 
+export interface CommentRow {
+  id: string;
+  diagramId: string;
+  authorId: string;
+  text: string;
+  x: number;
+  y: number;
+  createdAt: string;
+}
+
+export interface AdrRow {
+  id: string;
+  diagramId: string;
+  number: number;
+  title: string;
+  status: string;
+  context: string;
+  decision: string;
+  consequences: string;
+  linkedNodes: string[];
+  authorId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommentRepository {
+  list(diagramId: string, userId: string): Promise<CommentRow[]>;
+  create(diagramId: string, authorId: string, text: string, x: number, y: number): Promise<CommentRow>;
+  delete(id: string, userId: string): Promise<void>;
+}
+
+export interface AdrRepository {
+  list(diagramId: string, userId: string): Promise<AdrRow[]>;
+  create(diagramId: string, authorId: string, data: Omit<AdrRow, "id" | "diagramId" | "authorId" | "createdAt" | "updatedAt" | "number">): Promise<AdrRow>;
+  update(id: string, userId: string, patch: Partial<Omit<AdrRow, "id" | "diagramId" | "authorId" | "createdAt" | "updatedAt">>): Promise<AdrRow | null>;
+  delete(id: string, userId: string): Promise<void>;
+}
+
 /** Aggregate of every persistence port, plus transaction scoping. */
 export interface Repositories {
   projects: ProjectRepository;
@@ -210,6 +248,8 @@ export interface Repositories {
   idempotency: IdempotencyRepository;
   orgs: OrgRepository;
   auditLogs: AuditLogRepository;
+  comments: CommentRepository;
+  adrs: AdrRepository;
   /**
    * Run `fn` with transaction-scoped repositories. Fakes implement this
    * as a pass-through; the Prisma factory binds a $transaction client.

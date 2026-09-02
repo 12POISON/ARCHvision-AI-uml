@@ -10,6 +10,7 @@ import type { AdrRecord, AdrStatus } from "@/lib/architecture/adr";
  */
 
 const STORAGE_KEY = "archvision:adrs";
+const DB_MODE = process.env.NEXT_PUBLIC_DATA_MODE === "db";
 
 export interface NewAdrInput {
   title: string;
@@ -26,6 +27,7 @@ interface AdrsState {
   update: (diagramId: string, id: string, patch: Partial<Omit<AdrRecord, "id" | "number">>) => void;
   remove: (diagramId: string, id: string) => void;
   toggleNodeLink: (diagramId: string, id: string, nodeName: string) => void;
+  syncFromServer: (diagramId: string) => Promise<void>;
 }
 
 function load(): Record<string, AdrRecord[]> {
@@ -76,6 +78,13 @@ export const useAdrsStore = create<AdrsState>((set, get) => ({
     const next = { ...get().adrs, [diagramId]: [record, ...records] };
     save(next);
     set({ adrs: next });
+    if (DB_MODE) {
+      void fetch(`/api/diagrams/${encodeURIComponent(diagramId)}/adrs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: record.title, status: record.status, context: record.context, decision: record.decision, consequences: record.consequences, linkedNodes: record.linkedNodes }),
+      }).catch(() => undefined);
+    }
     return record;
   },
 
@@ -87,6 +96,13 @@ export const useAdrsStore = create<AdrsState>((set, get) => ({
     };
     save(next);
     set({ adrs: next });
+    if (DB_MODE) {
+      void fetch(`/api/adrs/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      }).catch(() => undefined);
+    }
   },
 
   remove: (diagramId, id) => {
@@ -94,25 +110,64 @@ export const useAdrsStore = create<AdrsState>((set, get) => ({
     const next = { ...get().adrs, [diagramId]: records.filter((adr) => adr.id !== id) };
     save(next);
     set({ adrs: next });
+    if (DB_MODE) {
+      void fetch(`/api/adrs/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => undefined);
+    }
   },
 
   toggleNodeLink: (diagramId, id, nodeName) => {
     const records = get().adrs[diagramId] ?? [];
+    const target = records.find((r) => r.id === id);
+    const nextLinked = target
+      ? target.linkedNodes.includes(nodeName)
+        ? target.linkedNodes.filter((n) => n !== nodeName)
+        : [...target.linkedNodes, nodeName]
+      : [];
     const next = {
       ...get().adrs,
       [diagramId]: records.map((adr) =>
-        adr.id === id
-          ? {
-              ...adr,
-              linkedNodes: adr.linkedNodes.includes(nodeName)
-                ? adr.linkedNodes.filter((n) => n !== nodeName)
-                : [...adr.linkedNodes, nodeName],
-            }
-          : adr
+        adr.id === id ? { ...adr, linkedNodes: nextLinked } : adr
       ),
     };
     save(next);
     set({ adrs: next });
+    if (DB_MODE && target) {
+      void fetch(`/api/adrs/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ linkedNodes: nextLinked }),
+      }).catch(() => undefined);
+    }
+  },
+
+  syncFromServer: async (diagramId: string) => {
+    if (!DB_MODE) return;
+    try {
+      const res = await fetch(`/api/diagrams/${encodeURIComponent(diagramId)}/adrs`);
+      if (!res.ok) return;
+      const json = (await res.json()) as { ok?: boolean; data?: Array<{ id: string; number: number; title: string; status: string; context: string; decision: string; consequences: string; linkedNodes: string[]; createdAt: string }> };
+      if (!json.ok || !Array.isArray(json.data)) return;
+      const serverRecords: AdrRecord[] = json.data.map((r) => ({
+        id: r.id,
+        number: r.number,
+        title: r.title,
+        status: r.status as AdrRecord["status"],
+        context: r.context,
+        decision: r.decision,
+        consequences: r.consequences,
+        date: r.createdAt,
+        linkedNodes: r.linkedNodes ?? [],
+      }));
+      const current = get().adrs[diagramId] ?? [];
+      const serverIds = new Set(serverRecords.map((r) => r.id));
+      const localOnly = current.filter((r) => !serverIds.has(r.id) && r.id.startsWith("adr_"));
+      const merged = [...serverRecords, ...localOnly].sort((a, b) => b.number - a.number);
+      const next = { ...get().adrs, [diagramId]: merged };
+      save(next);
+      set({ adrs: next });
+    } catch {
+      // offline
+    }
   },
 }));
 

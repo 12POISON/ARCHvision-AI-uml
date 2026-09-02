@@ -67,8 +67,19 @@ function makeRepos(usersByEmail: Record<string, string>): { repos: Repositories;
       return [];
     },
   };
+  const comments: Repositories["comments"] = {
+    async list() { return []; },
+    async create(_d: string, a: string, t: string, x: number, y: number) { return { id: "c1", diagramId: "d1", authorId: a, text: t, x, y, createdAt: new Date().toISOString() }; },
+    async delete() {},
+  };
+  const adrs: Repositories["adrs"] = {
+    async list() { return []; },
+    async create(_d: string, _a: string, d: { title: string; status: string; context: string; decision: string; consequences: string; linkedNodes: string[] }) { return { id: "a1", diagramId: "d1", number: 1, title: d.title, status: d.status, context: d.context, decision: d.decision, consequences: d.consequences, linkedNodes: d.linkedNodes, authorId: "u", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; },
+    async update() { return { id: "a1", diagramId: "d1", number: 1, title: "t", status: "proposed", context: "", decision: "", consequences: "", linkedNodes: [], authorId: "u", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; },
+    async delete() {},
+  };
   return {
-    repos: { ...({} as Repositories), orgs: repo, auditLogs } as Repositories,
+    repos: { ...({} as Repositories), orgs: repo, auditLogs, comments, adrs } as Repositories,
     orgs,
     nextId: () => `org_${counter + 1}`,
   };

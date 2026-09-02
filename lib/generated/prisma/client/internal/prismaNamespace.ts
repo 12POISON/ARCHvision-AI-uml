@@ -410,7 +410,9 @@ export const ModelName = {
   DiagramVersion: 'DiagramVersion',
   DiagramChangeLog: 'DiagramChangeLog',
   IdempotencyRecord: 'IdempotencyRecord',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  Comment: 'Comment',
+  Adr: 'Adr'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -426,7 +428,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "account" | "session" | "user" | "organization" | "workspaceMember" | "project" | "diagram" | "promptHistory" | "validationReport" | "export" | "diagramVersion" | "diagramChangeLog" | "idempotencyRecord" | "auditLog"
+    modelProps: "account" | "session" | "user" | "organization" | "workspaceMember" | "project" | "diagram" | "promptHistory" | "validationReport" | "export" | "diagramVersion" | "diagramChangeLog" | "idempotencyRecord" | "auditLog" | "comment" | "adr"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1466,6 +1468,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Comment: {
+      payload: Prisma.$CommentPayload<ExtArgs>
+      fields: Prisma.CommentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CommentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CommentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>
+        }
+        findFirst: {
+          args: Prisma.CommentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CommentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>
+        }
+        findMany: {
+          args: Prisma.CommentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>[]
+        }
+        create: {
+          args: Prisma.CommentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>
+        }
+        createMany: {
+          args: Prisma.CommentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CommentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>[]
+        }
+        delete: {
+          args: Prisma.CommentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>
+        }
+        update: {
+          args: Prisma.CommentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>
+        }
+        deleteMany: {
+          args: Prisma.CommentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CommentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CommentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>[]
+        }
+        upsert: {
+          args: Prisma.CommentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>
+        }
+        aggregate: {
+          args: Prisma.CommentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateComment>
+        }
+        groupBy: {
+          args: Prisma.CommentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CommentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CommentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CommentCountAggregateOutputType> | number
+        }
+      }
+    }
+    Adr: {
+      payload: Prisma.$AdrPayload<ExtArgs>
+      fields: Prisma.AdrFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AdrFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdrPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AdrFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdrPayload>
+        }
+        findFirst: {
+          args: Prisma.AdrFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdrPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AdrFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdrPayload>
+        }
+        findMany: {
+          args: Prisma.AdrFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdrPayload>[]
+        }
+        create: {
+          args: Prisma.AdrCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdrPayload>
+        }
+        createMany: {
+          args: Prisma.AdrCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AdrCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdrPayload>[]
+        }
+        delete: {
+          args: Prisma.AdrDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdrPayload>
+        }
+        update: {
+          args: Prisma.AdrUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdrPayload>
+        }
+        deleteMany: {
+          args: Prisma.AdrDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AdrUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AdrUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdrPayload>[]
+        }
+        upsert: {
+          args: Prisma.AdrUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdrPayload>
+        }
+        aggregate: {
+          args: Prisma.AdrAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAdr>
+        }
+        groupBy: {
+          args: Prisma.AdrGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AdrGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AdrCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AdrCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1685,6 +1835,37 @@ export const AuditLogScalarFieldEnum = {
 } as const
 
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+export const CommentScalarFieldEnum = {
+  id: 'id',
+  diagramId: 'diagramId',
+  authorId: 'authorId',
+  text: 'text',
+  x: 'x',
+  y: 'y',
+  createdAt: 'createdAt'
+} as const
+
+export type CommentScalarFieldEnum = (typeof CommentScalarFieldEnum)[keyof typeof CommentScalarFieldEnum]
+
+
+export const AdrScalarFieldEnum = {
+  id: 'id',
+  diagramId: 'diagramId',
+  number: 'number',
+  title: 'title',
+  status: 'status',
+  context: 'context',
+  decision: 'decision',
+  consequences: 'consequences',
+  linkedNodes: 'linkedNodes',
+  authorId: 'authorId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AdrScalarFieldEnum = (typeof AdrScalarFieldEnum)[keyof typeof AdrScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2024,6 +2205,8 @@ export type GlobalOmitConfig = {
   diagramChangeLog?: Prisma.DiagramChangeLogOmit
   idempotencyRecord?: Prisma.IdempotencyRecordOmit
   auditLog?: Prisma.AuditLogOmit
+  comment?: Prisma.CommentOmit
+  adr?: Prisma.AdrOmit
 }
 
 /* Types for Logging */

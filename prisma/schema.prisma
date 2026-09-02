@@ -50,6 +50,8 @@ model User {
   idempotencyRecords IdempotencyRecord[]
   memberships   WorkspaceMember[]
   auditLogs     AuditLog[]
+  comments      Comment[]
+  adrs          Adr[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -126,6 +128,8 @@ model Diagram {
   exports          Export[]
   versions         DiagramVersion[]
   changeLog        DiagramChangeLog[]
+  comments         Comment[]
+  adrs             Adr[]
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
@@ -223,6 +227,43 @@ model AuditLog {
   @@index([organizationId, createdAt])
   @@index([userId])
   @@index([createdAt])
+}
+
+/// Canvas comments pinned to diagrams (async collab — persisted per diagram).
+model Comment {
+  id        String   @id @default(cuid())
+  diagramId String
+  diagram   Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  text      String   @db.Text
+  x         Float
+  y         Float
+  createdAt DateTime @default(now())
+
+  @@index([diagramId])
+  @@index([authorId])
+}
+
+/// Architecture Decision Records persisted per diagram (async collab).
+model Adr {
+  id           String   @id @default(cuid())
+  diagramId    String
+  diagram      Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  number       Int
+  title        String
+  status       String
+  context      String   @db.Text
+  decision     String   @db.Text
+  consequences String   @db.Text
+  linkedNodes  Json
+  authorId     String
+  author       User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([diagramId, number])
+  @@index([diagramId])
 }
 
 enum DiagramType {

@@ -64,7 +64,9 @@ export const ModelName = {
   DiagramVersion: 'DiagramVersion',
   DiagramChangeLog: 'DiagramChangeLog',
   IdempotencyRecord: 'IdempotencyRecord',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  Comment: 'Comment',
+  Adr: 'Adr'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -263,6 +265,37 @@ export const AuditLogScalarFieldEnum = {
 } as const
 
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+export const CommentScalarFieldEnum = {
+  id: 'id',
+  diagramId: 'diagramId',
+  authorId: 'authorId',
+  text: 'text',
+  x: 'x',
+  y: 'y',
+  createdAt: 'createdAt'
+} as const
+
+export type CommentScalarFieldEnum = (typeof CommentScalarFieldEnum)[keyof typeof CommentScalarFieldEnum]
+
+
+export const AdrScalarFieldEnum = {
+  id: 'id',
+  diagramId: 'diagramId',
+  number: 'number',
+  title: 'title',
+  status: 'status',
+  context: 'context',
+  decision: 'decision',
+  consequences: 'consequences',
+  linkedNodes: 'linkedNodes',
+  authorId: 'authorId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AdrScalarFieldEnum = (typeof AdrScalarFieldEnum)[keyof typeof AdrScalarFieldEnum]
 
 
 export const SortOrder = {

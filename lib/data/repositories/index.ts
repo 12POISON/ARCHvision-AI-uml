@@ -10,6 +10,8 @@ import { validationRepository } from "./validation.repository";
 import { idempotencyRepository } from "./idempotency.repository";
 import { orgRepository } from "./org.repository";
 import { auditLogRepository } from "./audit-log.repository";
+import { commentRepository } from "./comment.repository";
+import { adrRepository } from "./adr.repository";
 
 /**
  * Repository factory — the ONLY place that talks to Prisma.
@@ -38,6 +40,8 @@ export function createRepositories(client: DbClient): Repositories {
     idempotency: idempotencyRepository(client),
     orgs: orgRepository(client),
     auditLogs: auditLogRepository(client),
+    comments: commentRepository(client),
+    adrs: adrRepository(client),
     withTransaction: <T>(fn: (tx: Repositories) => Promise<T>): Promise<T> =>
       client.$transaction(async (tx) => fn(createRepositories(tx as DbClient))),
   };
