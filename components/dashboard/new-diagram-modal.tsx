@@ -84,7 +84,7 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
   const [description, setDescription] = React.useState("");
   const [selectedProject, setSelectedProject] = React.useState("");
   const [type, setType] = React.useState<QuickType>("CLASS");
-  const [tab, setTab] = React.useState<"description" | "manual" | "openapi" | "sql">("description");
+  const [tab, setTab] = React.useState<"description" | "manual" | "openapi" | "sql" | "github">("description");
   const [extracting, setExtracting] = React.useState(false);
   const [describing, setDescribing] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
@@ -95,6 +95,11 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
   const [manualRelationships, setManualRelationships] = React.useState<ManualRelationship[]>([]);
   const [openApiText, setOpenApiText] = React.useState("");
   const [sqlText, setSqlText] = React.useState("");
+  const [githubUrl, setGithubUrl] = React.useState("");
+  const [githubBranch, setGithubBranch] = React.useState("");
+  const [githubResult, setGithubResult] = React.useState<{ mermaid: string; stats: { files: number; classes: number; modules: number }; warnings: string[] } | null>(null);
+  const [githubError, setGithubError] = React.useState<string | null>(null);
+  const [githubLoading, setGithubLoading] = React.useState(false);
 
   const openApiImport = React.useMemo(() => {
     if (openApiText.trim().length === 0) return null;
@@ -128,6 +133,30 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
     setSqlText(await file.text());
   };
 
+  const runGithubImport = async (): Promise<void> => {
+    if (!githubUrl.trim()) {
+      setGithubError("Paste a GitHub URL like https://github.com/owner/repo");
+      return;
+    }
+    setGithubLoading(true);
+    setGithubError(null);
+    setGithubResult(null);
+    try {
+      const res = await fetch("/api/import/github", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoUrl: githubUrl.trim(), branch: githubBranch.trim() || undefined }),
+      });
+      const json = (await res.json()) as { ok?: boolean; data?: { mermaid: string; stats: { files: number; classes: number; modules: number }; warnings: string[] }; error?: { message?: string } };
+      if (!res.ok || !json.ok) throw new Error(json.error?.message ?? `GitHub import failed (${res.status})`);
+      setGithubResult(json.data!);
+    } catch (err) {
+      setGithubError(err instanceof Error ? err.message : "GitHub import failed");
+    } finally {
+      setGithubLoading(false);
+    }
+  };
+
   React.useEffect(() => {
     if (open) {
       setSelectedProject(projectId ?? projects[0]?.id ?? "");
@@ -142,6 +171,10 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
       setManualRelationships([]);
       setOpenApiText("");
       setSqlText("");
+      setGithubUrl("");
+      setGithubBranch("");
+      setGithubResult(null);
+      setGithubError(null);
     }
   }, [open, projectId, projects]);
 
@@ -223,6 +256,31 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
       let finalMermaid: string | undefined = mermaidPreview ?? undefined;
       if (tab === "manual" && manualArchitecture.nodes.length > 0) {
         finalMermaid = architectureToMermaid(manualArchitecture);
+      }
+      if (tab === "github") {
+        if (!githubResult) {
+          toast("error", githubError ?? "Import a GitHub repo first — paste its URL and hit Import.");
+          setCreating(false);
+          return;
+        }
+        const repoName = (() => {
+          try {
+            const u = new URL(githubUrl);
+            const parts = u.pathname.split("/").filter(Boolean);
+            return parts[1] ? `${parts[1]} architecture` : "Imported Repo";
+          } catch {
+            return name.trim() || "Imported Repo";
+          }
+        })();
+        const diagram = await storage.createDiagram(
+          { name: name.trim() || repoName, type: "CLASS", description: `Imported from ${githubUrl}` },
+          targetProject,
+          githubResult.mermaid
+        );
+        void useWorkspaceStore.getState().reload();
+        router.push(`/editor/${diagram.id}`);
+        onOpenChange(false);
+        return;
       }
       if (tab === "sql") {
         if (!sqlImport?.result) {
@@ -323,11 +381,13 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
   };
 
   const canCreate =
-    tab === "openapi"
-      ? Boolean(openApiImport?.result)
-      : tab === "sql"
-        ? Boolean(sqlImport?.result)
-        : tab === "manual"
+    tab === "github"
+      ? Boolean(githubResult)
+      : tab === "openapi"
+        ? Boolean(openApiImport?.result)
+        : tab === "sql"
+          ? Boolean(sqlImport?.result)
+          : tab === "manual"
           ? manualArchitecture.nodes.length > 0
           : Boolean(description.trim() || preview !== null);
 
@@ -348,6 +408,7 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
               { id: "manual", label: "Manual info" },
               { id: "openapi", label: "Import OpenAPI" },
               { id: "sql", label: "Import SQL" },
+              { id: "github", label: "Import GitHub" },
             ] as const
           ).map((option) => (
             <button
@@ -408,6 +469,54 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
               ) : null}
             </div>
           </div>
+
+          {tab === "github" ? (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="nd-github-url">GitHub repository URL</Label>
+                <Input
+                  id="nd-github-url"
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
+                  placeholder="https://github.com/owner/repo"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="nd-github-branch">Branch (optional, defaults to main)</Label>
+                <Input id="nd-github-branch" value={githubBranch} onChange={(e) => setGithubBranch(e.target.value)} placeholder="main" />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void runGithubImport()}
+                disabled={!githubUrl.trim() || githubLoading}
+                className="w-full"
+              >
+                {githubLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {githubLoading ? "Fetching…" : "Import from GitHub"}
+              </Button>
+              {githubError ? (
+                <p className="rounded-xl border border-error/20 bg-error/5 px-3 py-2 text-[12px] font-semibold text-error" role="alert">
+                  {githubError}
+                </p>
+              ) : null}
+              {githubResult ? (
+                <div className="rounded-2xl border border-accent-200/70 bg-accent-soft/60 px-4 py-3">
+                  <p className="text-[13px] font-bold text-teal-900">
+                    Ready to import — {githubResult.stats.files} files, {githubResult.stats.classes} classes, {githubResult.stats.modules} modules
+                  </p>
+                  <p className="mt-0.5 text-[11.5px] leading-snug text-teal-900/70">Creates one class diagram grouped by folder.</p>
+                  {githubResult.warnings.length > 0 ? (
+                    <ul className="mt-1 list-inside list-disc text-[11px] text-amber-700">
+                      {githubResult.warnings.map((w) => (
+                        <li key={w}>{w}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {tab === "sql" ? (
             <div className="space-y-3">
@@ -768,6 +877,8 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
               <Badge variant="outline">Architecture + flow from spec</Badge>
             ) : tab === "sql" ? (
               <Badge variant="outline">ER diagram from DDL</Badge>
+            ) : tab === "github" ? (
+              <Badge variant="outline">Class diagram from repo</Badge>
             ) : (
               <Badge variant="outline">Class diagram (manual)</Badge>
             )}
@@ -776,7 +887,9 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
                 ? "validated live"
                 : tab === "openapi" || tab === "sql"
                   ? "parsed locally — nothing uploaded"
-                  : "auto-detect from text"}
+                  : tab === "github"
+                    ? "fetched via GitHub API"
+                    : "auto-detect from text"}
             </Badge>
           </div>
 

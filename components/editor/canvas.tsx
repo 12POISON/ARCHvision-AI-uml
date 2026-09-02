@@ -14,6 +14,7 @@ import {
   type NodeChange,
   type EdgeChange,
   type Connection,
+  type NodeTypes,
   type OnSelectionChangeParams,
   type XYPosition,
 } from "@xyflow/react";
@@ -38,14 +39,15 @@ interface CanvasProps {
   engine: DiagramEngine;
 }
 
-const NODE_TYPES = {
-  uml: React.lazy(() => import("@/components/editor/uml-shapes")),
+const NODE_TYPES: NodeTypes = {
+  uml: React.lazy(() => import("@/components/editor/uml-shapes")) as unknown as NodeTypes["uml"],
   "actor-node": React.lazy(() =>
     import("@/components/editor/uml-node").then((m) => ({ default: m.UMLActorNodeComponent }))
-  ),
+  ) as unknown as NodeTypes["uml"],
   "database-node": React.lazy(() =>
     import("@/components/editor/uml-node").then((m) => ({ default: m.UMLDatabaseNodeComponent }))
-  ),
+  ) as unknown as NodeTypes["uml"],
+  "c4-group": React.lazy(() => import("@/components/editor/c4-group-node")) as unknown as NodeTypes["uml"],
 };
 
 const EDGE_TYPES = {
