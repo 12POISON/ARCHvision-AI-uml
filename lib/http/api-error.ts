@@ -72,12 +72,16 @@ export class ConflictError extends ApiError {
   }
 }
 
-/** Thrown by the rate limiter; the wrapper adds the Retry-After header. */
+/**
+ * Thrown by the rate limiter (and the AI daily budget); the wrapper adds
+ * the Retry-After header. Message is customizable so budget denials can
+ * say exactly when the quota resets.
+ */
 export class RateLimitedError extends ApiError {
   readonly retryAfter: number;
 
-  constructor(retryAfter: number) {
-    super(429, "rate_limited", "Rate limit exceeded");
+  constructor(retryAfter: number, message = "Rate limit exceeded") {
+    super(429, "rate_limited", message);
     this.retryAfter = retryAfter;
   }
 }

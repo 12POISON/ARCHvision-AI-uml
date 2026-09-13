@@ -35,11 +35,15 @@ export const GET = withApiHandler(
       });
     }
 
-    const aiProvider = process.env.OPENAI_API_KEY
-      ? "openai"
-      : process.env.ANTHROPIC_API_KEY
-        ? "anthropic"
-        : "none";
+    // A disabled provider reports as "none": features run on the offline engine.
+    const { aiProviderEnabled } = await import("@/lib/ai/budget");
+    const aiProvider = !aiProviderEnabled()
+      ? "none"
+      : process.env.OPENAI_API_KEY
+        ? "openai"
+        : process.env.ANTHROPIC_API_KEY
+          ? "anthropic"
+          : "none";
 
     return ctx.json(
       {

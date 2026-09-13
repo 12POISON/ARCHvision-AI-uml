@@ -2,6 +2,7 @@ import { generateText, streamText } from "ai";
 import { AiUnavailableError } from "@/lib/http/api-error";
 import type { AiChatRequest, AiDescribeRequest } from "@/lib/validation/schemas/ai.schemas";
 import { offlineChat, type ChatSink } from "@/lib/ai/offline-engine";
+import { aiProviderEnabled } from "@/lib/ai/budget";
 
 /**
  * AiAssistService — bounded context: AI generation.
@@ -21,7 +22,18 @@ export interface AiStreamSink extends ChatSink {
 }
 
 function hasProviderKey(): boolean {
+  // Kill switch first: AI_PROVIDER_DISABLED=true guarantees zero provider
+  // spend while every feature keeps working on the free offline engine.
+  if (!aiProviderEnabled()) return false;
   return Boolean(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY);
+}
+
+/** Model id the online path would use — for usage logging (no SDK import). */
+export function currentModelId(): string {
+  if (!aiProviderEnabled()) return "offline";
+  if (process.env.OPENAI_API_KEY) return "gpt-4o-mini";
+  if (process.env.ANTHROPIC_API_KEY) return "claude-3-5-sonnet-latest";
+  return "offline";
 }
 
 let openaiModule: typeof import("@ai-sdk/openai") | null = null;
