@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
@@ -53,4 +55,17 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// Sourcemap upload only when Sentry is actually configured; otherwise the
+// wrapper is a pass-through so local/CI builds never depend on Sentry creds.
+const sentryWrapped =
+  process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
+    ? withSentryConfig(nextConfig, {
+        org: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
+        silent: true,
+        widenClientFileUpload: false,
+        sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+      })
+    : nextConfig;
+
+export default sentryWrapped;

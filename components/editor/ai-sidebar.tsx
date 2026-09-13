@@ -15,6 +15,7 @@ import { Markdown } from "@/components/shared/markdown";
 import { useAIChat, type ChatMessage } from "@/hooks/useAIChat";
 import type { DiagramEngine } from "@/hooks/useDiagram";
 import { storage } from "@/lib/data/storage";
+import { track } from "@/lib/analytics";
 import { generateId } from "@/lib/utils";
 
 export type AiMode = "openai" | "anthropic" | "offline";
@@ -143,6 +144,8 @@ export function AISidebar({ engine, open, onClose, mode }: AISidebarProps): Reac
 
     if (full.trim().length === 0) {
       setMessages((prev) => prev.filter((m) => m.id !== assistantMessage.id));
+    } else {
+      track("ai_chat_used", { action, offline: fallbackRef.current });
     }
   };
 

@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { DIAGRAM_TYPES } from "@/types/diagram";
 import type { Architecture, ArchitectureNodeKind, ArchitectureRelationshipType, UMLModel } from "@/types/diagram";
 import { storage, StorageApiError } from "@/lib/data/storage";
+import { track } from "@/lib/analytics";
 import { importOpenApi, OpenApiImportError } from "@/lib/importers/openapi";
 import { importDdl, DdlImportError } from "@/lib/importers/ddl";
 import { toast } from "@/components/ui/toast";
@@ -277,6 +278,8 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
           targetProject,
           githubResult.mermaid
         );
+        track("import_used", { kind: "github" });
+        track("diagram_created", { source: "github", type: "CLASS" });
         void useWorkspaceStore.getState().reload();
         router.push(`/editor/${diagram.id}`);
         onOpenChange(false);
@@ -300,6 +303,8 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
           targetProject,
           sqlImport.result.erMermaid
         );
+        track("import_used", { kind: "sql" });
+        track("diagram_created", { source: "sql", type: "ER" });
         void useWorkspaceStore.getState().reload();
         router.push(`/editor/${diagram.id}`);
         onOpenChange(false);
@@ -338,6 +343,8 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
         } catch {
           toast("info", "Architecture imported — the flow diagram could not be created.");
         }
+        track("import_used", { kind: "openapi" });
+        track("diagram_created", { source: "openapi", type: "CLASS" });
         void useWorkspaceStore.getState().reload();
         router.push(`/editor/${classDiagram.id}`);
         onOpenChange(false);
@@ -359,6 +366,7 @@ export function NewDiagramModal({ open, onOpenChange, projectId }: NewDiagramMod
         targetProject,
         finalMermaid
       );
+      track("diagram_created", { source: tab, type: tab === "manual" ? "CLASS" : type });
       void useWorkspaceStore.getState().reload();
       router.push(`/editor/${diagram.id}`);
       onOpenChange(false);

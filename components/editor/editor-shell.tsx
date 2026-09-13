@@ -29,6 +29,7 @@ import { useDiagram, useEditorUI } from "@/hooks/useDiagram";
 import { useEditorShortcuts } from "@/hooks/useEditorShortcuts";
 import { useCommentsStore } from "@/lib/editor/comments";
 import { exportDiagram, type ExportFormat } from "@/lib/export/engine";
+import { track } from "@/lib/analytics";
 import { storage } from "@/lib/data/storage";
 import { toast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
@@ -173,6 +174,7 @@ export function EditorShell({
     } finally {
       setExporting(null);
     }
+    track("diagram_exported", { format, diagramType: engine.type });
     // Persisting the report is a separate concern — its failure must not
     // claim the export itself failed.
     try {

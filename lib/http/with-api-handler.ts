@@ -178,6 +178,18 @@ export function createApiHandler<Q = Record<string, string | undefined>>(
       const message = error instanceof Error ? error.message : "Unknown error";
       log.error("unhandled error", { method, path, error: message, stack: error instanceof Error ? error.stack : undefined });
       reportErrorToWebhook(error, { requestId, path, method, userId: null });
+      // Sentry (Phase 2): best-effort, never blocks the response. No-op without DSN.
+      try {
+        void import("@sentry/nextjs").then((Sentry) => {
+          try {
+            Sentry.captureException(error, { extra: { requestId, method, path } });
+          } catch {
+            // ignore
+          }
+        });
+      } catch {
+        // ignore — error reporting must not break error handling
+      }
       const response = errorJson(500, "internal", "Internal server error", requestId);
       response.headers.set("x-request-id", requestId);
       return response;
