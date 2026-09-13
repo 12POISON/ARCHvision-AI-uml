@@ -25,6 +25,13 @@ whenever `DATABASE_URL` is set and reachable, and skip cleanly otherwise.
 CI spins up Postgres, so they always run there — never delete a skip
 without providing a DB.
 
+End-to-end (`npm run test:e2e`, Playwright + Chromium) covers the real
+product loop — demo sign-in → project → AI-described diagram → canvas →
+SVG export. It needs a reachable `DATABASE_URL` (demo sign-in persists
+the demo user via the Prisma adapter) and runs the dev server itself.
+CI runs it as a separate `e2e` job; locally: `npm run db:migrate` first,
+then `npm run test:e2e`.
+
 ## Branches
 
 `feat/<slug>`, `fix/<slug>`, `chore/<slug>`, `docs/<slug>`, `test/<slug>`
