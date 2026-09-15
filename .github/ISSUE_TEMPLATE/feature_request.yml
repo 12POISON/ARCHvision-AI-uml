@@ -1,0 +1,30 @@
+name: Feature request
+description: Propose a capability for ArchVision AI
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Whose workflow hurts, and how
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should happen, including which view (canvas, panel, modal, API)
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Diagram engine
+        - AI copilot
+        - Importers
+        - Validation / analysis
+        - Export / codegen
+        - Auth / workspace
+        - Docs / DX

@@ -290,6 +290,7 @@ Commits follow Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`
 - [`docs/EXECUTION_MANUAL.md`](docs/EXECUTION_MANUAL.md) — local setup end to end, troubleshooting
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — branches, commits, gates
 - [`SECURITY.md`](SECURITY.md) — scanning and accepted risks
+- [`CHANGELOG.md`](CHANGELOG.md) — release history
 
 ## License
 

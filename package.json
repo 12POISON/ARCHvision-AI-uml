@@ -9,6 +9,10 @@
     { "name": "RAYAN DAVID", "url": "https://github.com/ryaaa4nnnn" }
   ],
   "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "prisma generate && next build",

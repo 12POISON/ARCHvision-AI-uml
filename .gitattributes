@@ -1,0 +1,12 @@
+# Normalize line endings (silences LF/CRLF churn on Windows checkouts)
+* text=auto
+
+# Keep binaries untouched
+*.png binary
+*.ico binary
+*.pdf binary
+*.woff2 binary
+
+# Generated / vendored
+package-lock.json linguist-generated
+/lib/generated/** linguist-generated
