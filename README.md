@@ -26,6 +26,7 @@ Turn natural language, code repositories, and database schemas into production-r
 - [Deployment](#deployment)
 - [Security](#security)
 - [Contributing](#contributing)
+- [Contributors](#contributors)
 - [Documentation](#documentation)
 - [License](#license)
 
@@ -273,6 +274,15 @@ Branch naming: `feat/<slug>`, `fix/<slug>`, `chore/<slug>`, `docs/<slug>`, `test
 
 Commits follow Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `refactor:`), one logical change per commit. Full workflow: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## Contributors
+
+| Name | GitHub |
+| --- | --- |
+| DEVIREDDY BHARADWAJA REDDY (owner) | [@12POISON](https://github.com/12POISON) |
+| JASH VERMA | [@coderhikehde](https://github.com/coderhikehde) |
+| VINAYAK PRIYESH | [@vinkrt24-proj](https://github.com/vinkrt24-proj) |
+| RAYAN DAVID | [@ryaaa4nnnn](https://github.com/ryaaa4nnnn) |
+
 ## Documentation
 
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Vercel runbook, environment matrix, health checks
@@ -283,4 +293,4 @@ Commits follow Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`
 
 ## License
 
-Proprietary — © 2026 BJVR. All rights reserved. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Proprietary — © 2026 DEVIREDDY BHARADWAJA REDDY. All rights reserved. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

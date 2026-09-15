@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 BJVR. All rights reserved.
+ * Copyright (c) 2026 DEVIREDDY BHARADWAJA REDDY. All rights reserved.
  * Proprietary — no use, copying, or distribution without permission. See LICENSE.
  *
  * AI cost controls (Phase 3) — provider kill switch + per-user daily budget.

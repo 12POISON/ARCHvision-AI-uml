@@ -1,13 +1,13 @@
 # NOTICE — ArchVision AI
 
-Copyright (c) 2026 BJVR. All rights reserved.
+Copyright (c) 2026 DEVIREDDY BHARADWAJA REDDY. All rights reserved.
 
 This project is proprietary. No use, copying, modification, or distribution
 is permitted without prior written permission. See LICENSE.
 
 ## Authorship
 
-- Owner and copyright holder: BJVR (2026–present)
+- Owner and copyright holder: DEVIREDDY BHARADWAJA REDDY (2026–present)
 - Authorship is recorded in the git history of
   https://github.com/12POISON/ARCHvision-AI-uml.git (signed commits preferred).
 
@@ -19,4 +19,4 @@ This project incorporates third-party open-source packages (see
 - Retro CTA button styling adapted from a Uiverse.io snippet by
   augustin_4687 (see attribution in `app/globals.css`). That snippet's
   original remains the property of its author; the surrounding integration
-  and split-button variant are the property of BJVR.
+  and split-button variant are the property of DEVIREDDY BHARADWAJA REDDY.

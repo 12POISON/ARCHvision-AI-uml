@@ -32,7 +32,7 @@ export function Footer(): React.ReactElement {
         </div>
       </div>
       <p className="mt-10 text-center text-xs text-muted-foreground">
-        © 2026 BJVR. All rights reserved. Diagrams your architecture can finally be proud of.
+        © 2026 DEVIREDDY BHARADWAJA REDDY. All rights reserved. Diagrams your architecture can finally be proud of.
       </p>
     </footer>
   );
