@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/logo.png" width="420" alt="ArchVision AI">
+</p>
+
 # ArchVision AI — Automatic UML Diagram Generator
 
 Turn natural language, code repositories, and database schemas into production-ready UML diagrams — generated, edited, validated, and exported in one workspace.
@@ -12,6 +16,7 @@ Turn natural language, code repositories, and database schemas into production-r
 - [Overview](#overview)
 - [How it works](#how-it-works)
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Tech stack](#tech-stack)
 - [Quick start](#quick-start)
 - [Configuration](#configuration)
@@ -72,6 +77,64 @@ Client: Next.js 14 App Router + ReactFlow + Monaco. Server: thin typed REST rout
 | Auth | OAuth (GitHub/Google) when configured; demo user otherwise; no email/password |
 | Persistence | PostgreSQL in `db` mode; localStorage otherwise |
 | Sharing / real-time collaboration | Roadmap |
+
+## Screenshots
+
+Captured from the live app (light theme). Sources live in [`docs/screenshots/`](docs/screenshots/) — see its README for the file manifest.
+
+### Landing
+
+| Hero |
+| --- |
+| ![Landing hero](docs/screenshots/00-hero.png) |
+
+| Sign in | Features |
+| --- | --- |
+| ![Sign in with demo access](docs/screenshots/01-login.png) | ![Feature grid](docs/screenshots/02-features.png) |
+
+| Workflow | AI copilot |
+| --- | --- |
+| ![Three-step workflow](docs/screenshots/03-workflow.png) | ![Copilot that reads the diagram](docs/screenshots/04-ai-copilot.png) |
+
+### Workspace
+
+| Dashboard | Create — AI description |
+| --- | --- |
+| ![Workspace dashboard](docs/screenshots/05-dashboard.png) | ![Create diagram from description](docs/screenshots/06-create-ai.png) |
+
+| Create — Import SQL | Create — Import GitHub |
+| --- | --- |
+| ![Import SQL DDL to ER](docs/screenshots/07-import-sql.png) | ![Import GitHub repository](docs/screenshots/08-import-github.png) |
+
+| Create — Manual | Create — OpenAPI |
+| --- | --- |
+| ![Manual model builder](docs/screenshots/09-manual.png) | ![Import OpenAPI spec](docs/screenshots/10-import-openapi.png) |
+
+| AI generation | Editor canvas |
+| --- | --- |
+| ![Generate from system description](docs/screenshots/11-ai-generate.png) | ![Class diagram on canvas](docs/screenshots/12-editor-canvas.png) |
+
+### Editor
+
+| File menu | Code panel |
+| --- | --- |
+| ![File menu](docs/screenshots/13-file-menu.png) | ![Monaco two-way sync panel](docs/screenshots/14-code-panel.png) |
+
+| Codegen | Architecture critic |
+| --- | --- |
+| ![Forward-engineer to TypeScript](docs/screenshots/15-codegen.png) | ![Critic scores and insights](docs/screenshots/16-critic.png) |
+
+| Design document | Architecture report |
+| --- | --- |
+| ![Generated design doc](docs/screenshots/17-design-doc.png) | ![Deterministic architecture report](docs/screenshots/18-report.png) |
+
+| ADRs | Export |
+| --- | --- |
+| ![Architecture decision records](docs/screenshots/19-adr.png) | ![Export menu](docs/screenshots/20-export.png) |
+
+| AI Assist |
+| --- |
+| ![AI Assist menu](docs/screenshots/21-ai-assist.png) |
 
 ## Tech stack
 

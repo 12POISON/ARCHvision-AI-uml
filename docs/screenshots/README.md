@@ -1,15 +1,31 @@
 # Screenshots
 
-Drop 5-8 PNG/GIF captures here — the README wires them automatically.
+Product captures for the README gallery. Save captures with the exact names
+below (light theme, ~1600px wide); the README wires them automatically.
 
-Required shots (1280x800, light theme):
-1. `01-dashboard.png` — Dashboard with project stats
-2. `02-create-modal.png` — Create diagram modal (4 tabs visible)
-3. `03-canvas-cloud-icons.png` — Canvas with cloud-icon chips on nodes
-4. `04-c4-drilldown.png` — Breadcrumb bar + drilled-in container
-5. `05-validation.png` — Validation panel with 7-rule checklist
-6. `06-adr-panel.png` — ADR panel with linked nodes
-7. `07-export-menu.png` — Export dropdown open
-8. `08-import-preview.png` — OpenAPI/SQL import preview (optional GIF)
+| File | Shot |
+| --- | --- |
+| `00-hero.png` | Landing â€” hero above the fold |
+| `01-login.png` | Sign in â€” demo access + OAuth buttons |
+| `02-features.png` | Landing â€” feature grid |
+| `03-workflow.png` | Landing â€” three-step workflow |
+| `04-ai-copilot.png` | Landing â€” copilot section |
+| `05-dashboard.png` | Workspace dashboard â€” stats + recents |
+| `06-create-ai.png` | Create diagram â€” AI description tab |
+| `07-import-sql.png` | Create diagram â€” Import SQL tab |
+| `08-import-github.png` | Create diagram â€” Import GitHub tab |
+| `09-manual.png` | Create diagram â€” Manual info tab |
+| `10-import-openapi.png` | Create diagram â€” Import OpenAPI tab |
+| `11-ai-generate.png` | Create diagram â€” filled description + Generate |
+| `12-editor-canvas.png` | Editor â€” class diagram on canvas |
+| `13-file-menu.png` | Editor â€” File menu open |
+| `14-code-panel.png` | Editor â€” Monaco two-way sync panel |
+| `15-codegen.png` | Generate source code modal |
+| `16-critic.png` | Architecture critic scores |
+| `17-design-doc.png` | Design document modal |
+| `18-report.png` | Architecture report modal |
+| `19-adr.png` | ADR panel |
+| `20-export.png` | Export menu open |
+| `21-ai-assist.png` | AI Assist menu open |
 
 Use Playwright auto-capture if you prefer: `npm run screenshots` (coming soon).
