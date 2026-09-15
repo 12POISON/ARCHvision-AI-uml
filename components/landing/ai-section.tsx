@@ -35,13 +35,14 @@ export function AISection(): React.ReactElement {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid items-center gap-16 lg:grid-cols-2">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">AI Intelligence</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">The copilot</p>
             <h2 className="mt-3 text-4xl font-extrabold tracking-tighter text-foreground sm:text-5xl">
-              A copilot that reads architecture, not just text
+              It reads the diagram, not just the chat
             </h2>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-muted">
-              Every prompt is executed against the parsed AST of your diagram. The AI knows what&apos;s
-              selected, what depends on what, and where a change will ripple.
+              Every prompt runs against the parsed model of your diagram — what&apos;s selected,
+              what leans on what, and where an edit will ripple. So “make User inherit from
+              Account” lands in the right place on the first try.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-2">
@@ -60,7 +61,7 @@ export function AISection(): React.ReactElement {
             <Link href="/login" className="uiverse-btn uiverse-lg mt-9 inline-block">
               <div className="uiverse-btn-inner">
                 <span className="uiverse-btn-label">
-                  Start building
+                  Start drafting
                   <GitBranch className="ml-1 h-4 w-4" />
                 </span>
               </div>

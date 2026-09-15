@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { motion } from "framer-motion";
-import { Boxes, FolderKanban, LayoutGrid, Search, Settings, Sparkles } from "lucide-react";
+import { FolderKanban, LayoutGrid, Search, Settings, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,19 +35,16 @@ function initialsOf(user: NavUser | null | undefined): string {
 }
 
 export function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }): React.ReactElement {
-  const sizes = { sm: "h-7 w-7", md: "h-8 w-8", lg: "h-10 w-10" };
+  const heights = { sm: "h-7", md: "h-8", lg: "h-10" };
   return (
-    <Link href="/" className="group flex items-center gap-2.5" aria-label="ArchVision AI home">
+    <Link href="/" className="group flex items-center" aria-label="ArchVision AI home">
       <span
         className={cn(
-          "relative flex items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-deep text-white shadow-btn-primary transition-transform duration-300 group-hover:scale-105",
-          sizes[size]
+          "flex items-center overflow-hidden rounded-xl bg-black transition-transform duration-300 group-hover:scale-[1.02]",
+          heights[size]
         )}
       >
-        <Boxes className="h-1/2 w-1/2" strokeWidth={2.2} />
-      </span>
-      <span className="text-[17px] font-extrabold tracking-tight text-foreground">
-        ArchVision<span className="text-primary"> AI</span>
+        <Image src="/logo.png" alt="ArchVision AI" width={572} height={126} className="h-full w-auto" priority />
       </span>
     </Link>
   );

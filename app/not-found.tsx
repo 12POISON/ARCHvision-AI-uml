@@ -9,11 +9,11 @@ export default function NotFound(): React.ReactElement {
       </span>
       <p className="mt-8 text-[11px] font-bold uppercase tracking-[0.2em] text-primary">404 · Page not found</p>
       <h1 className="mt-3 max-w-md text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-        This page drifted off the diagram
+        This drawing left the set
       </h1>
       <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
-        The link may be outdated, or the address was mistyped. Your diagrams are safe — head back to
-        the workspace and keep going.
+        The link is stale or the address wandered off. Your diagrams are still pinned to the
+        board — head back and keep drafting.
       </p>
       <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
         <Link href="/dashboard" className="uiverse-btn">

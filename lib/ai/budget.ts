@@ -1,4 +1,7 @@
 /**
+ * Copyright (c) 2026 BJVR. All rights reserved.
+ * Proprietary — no use, copying, or distribution without permission. See LICENSE.
+ *
  * AI cost controls (Phase 3) — provider kill switch + per-user daily budget.
  *
  * Both are enforced in the AI routes BEFORE any provider SDK is touched:

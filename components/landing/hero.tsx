@@ -32,7 +32,7 @@ export function Hero({ authed = false }: { authed?: boolean }): React.ReactEleme
           <motion.div variants={fadeUp} custom={0} initial="hidden" animate="visible">
             <Badge variant="accent" className="mb-6 gap-2 px-4 py-1.5 text-[11px]">
               <Sparkles className="h-3 w-3" />
-              From plain language to production-ready UML
+              Words in, blueprints out
             </Badge>
           </motion.div>
 
@@ -45,9 +45,9 @@ export function Hero({ authed = false }: { authed?: boolean }): React.ReactEleme
           >
             Turn words into{" "}
             <span className="bg-gradient-to-r from-primary via-primary-deep to-accent bg-clip-text text-transparent">
-              production-ready
+              UML diagrams
             </span>{" "}
-            UML diagrams
+            worth building from
           </motion.h1>
 
           <motion.p
@@ -57,9 +57,9 @@ export function Hero({ authed = false }: { authed?: boolean }): React.ReactEleme
             animate="visible"
             className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg"
           >
-            ArchVision AI transforms natural language, code repositories and database schemas into
-            beautiful class, sequence and ER diagrams — then lets you refine them with plain English
-            prompts, validate the architecture and export production-grade artifacts.
+            ArchVision drafts class, sequence and ER diagrams from your sentences, repos and
+            schemas — then you redline them in plain English, check the structure, and export
+            artifacts your team can actually use.
           </motion.p>
 
           <motion.div
@@ -76,7 +76,7 @@ export function Hero({ authed = false }: { authed?: boolean }): React.ReactEleme
               <div className="uiverse-btn-inner">
                 <span className="uiverse-btn-label">
                   <Wand2 className="h-4 w-4" />
-                  {authed ? "Open your workspace" : "Start building"}
+                  {authed ? "Back to the drafting table" : "Start drafting"}
                   <ArrowRight className="h-4 w-4" />
                 </span>
               </div>
@@ -84,7 +84,7 @@ export function Hero({ authed = false }: { authed?: boolean }): React.ReactEleme
             <a href="#preview">
               <Button size="lg" variant="outline" className="w-full sm:w-auto">
                 <Play className="h-4 w-4" />
-                Watch it work
+                Watch it draft
               </Button>
             </a>
           </motion.div>
@@ -97,7 +97,7 @@ export function Hero({ authed = false }: { authed?: boolean }): React.ReactEleme
             className="mt-10 flex items-center justify-center gap-6 text-[13px] text-muted-foreground"
           >
             <span className="flex items-center gap-1.5">
-              <Zap className="h-3.5 w-3.5 text-teal-600" /> Blazing-fast streaming
+              <Zap className="h-3.5 w-3.5 text-teal-600" /> Streams as you type
             </span>
             <span className="hidden h-4 w-px bg-line sm:block" />
             <span className="flex items-center gap-1.5">
@@ -105,7 +105,7 @@ export function Hero({ authed = false }: { authed?: boolean }): React.ReactEleme
             </span>
             <span className="hidden h-4 w-px bg-line sm:block" />
             <span className="flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-500" /> 4 languages of codegen
+              <Sparkles className="h-3.5 w-3.5 text-emerald-500" /> Codegen in 4 languages
             </span>
           </motion.div>
         </div>

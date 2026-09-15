@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Boxes } from "lucide-react";
+import Image from "next/image";
 import { GithubIcon } from "@/components/ui/brand-icons";
 import { PROJECT_REPO_URL } from "@/lib/site";
 
@@ -7,13 +7,8 @@ export function Footer(): React.ReactElement {
   return (
     <footer className="border-t border-line bg-surface/50 py-14">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 px-4 sm:px-6 md:flex-row lg:px-8">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-deep text-white">
-            <Boxes className="h-4 w-4" />
-          </span>
-          <span className="text-[15px] font-extrabold tracking-tight text-foreground">
-            ArchVision<span className="text-primary"> AI</span>
-          </span>
+        <div className="flex items-center overflow-hidden rounded-xl bg-black">
+          <Image src="/logo.png" alt="ArchVision AI" width={572} height={126} className="h-8 w-auto" />
         </div>
         <nav className="flex items-center gap-6 text-sm text-muted-foreground" aria-label="Footer">
           <Link href="/#features" className="transition-colors hover:text-foreground">Features</Link>
@@ -37,7 +32,7 @@ export function Footer(): React.ReactElement {
         </div>
       </div>
       <p className="mt-10 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} ArchVision AI. Diagrams your architecture can finally be proud of.
+        © 2026 BJVR. All rights reserved. Diagrams your architecture can finally be proud of.
       </p>
     </footer>
   );

@@ -1,3 +1,7 @@
+/**
+ * Copyright (c) 2026 BJVR. All rights reserved.
+ * Proprietary — no use, copying, or distribution without permission. See LICENSE.
+ */
 import type {
   Architecture,
   ArchitectureNode,

@@ -60,14 +60,14 @@ export function FirstRunOnboarding({ projects }: { projects: Project[] }): React
       <div className="flex flex-col gap-2">
         <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
           <Rocket className="h-3.5 w-3.5" />
-          Your first diagram
+          Your first blueprint
         </p>
         <h2 className="text-xl font-extrabold tracking-tight text-foreground sm:text-2xl">
-          Three ways to start
+          Three ways onto the table
         </h2>
         <p className="max-w-xl text-sm leading-relaxed text-muted">
-          Describe a system in plain language and ArchVision drafts the architecture — or skip
-          straight to a starter template and make it yours.
+          Describe a system and let ArchVision sketch the first draft — or grab a starter
+          template and redraw it your way.
         </p>
       </div>
 

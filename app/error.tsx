@@ -14,10 +14,10 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
       <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-error">
         <TriangleAlert className="h-7 w-7" />
       </span>
-      <h2 className="text-xl font-extrabold tracking-tight text-foreground">Something went wrong</h2>
+      <h2 className="text-xl font-extrabold tracking-tight text-foreground">The pencil slipped</h2>
       <p className="max-w-md text-sm leading-relaxed text-muted">
-        An unexpected error occurred. Your changes are saved automatically as you work, so you can
-        try again without losing your workspace.
+        Something broke on our side. Your work autosaves as you go, so you can pick up right
+        where you left off.
       </p>
       {error.digest ? (
         <p className="max-w-md text-xs text-muted-foreground">

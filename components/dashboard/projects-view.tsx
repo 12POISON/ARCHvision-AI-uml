@@ -65,9 +65,9 @@ export function ProjectsView(): React.ReactElement {
         </div>
       ) : projects.length === 0 ? (
         <div className="mt-10 rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
-          <h2 className="text-lg font-extrabold tracking-tight text-foreground">No projects yet</h2>
+          <h2 className="text-lg font-extrabold tracking-tight text-foreground">No projects on the board yet</h2>
           <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">
-            Create your first project to start turning visions into diagrams.
+            Pin your first project here, then fill it with diagrams.
           </p>
           <div className="mt-6">
             <button type="button" onClick={() => setModalOpen(true)} className="uiverse-btn">

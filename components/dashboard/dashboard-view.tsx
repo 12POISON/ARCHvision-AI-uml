@@ -174,9 +174,9 @@ export function DashboardView({ user }: DashboardViewProps): React.ReactElement 
 
           {projects.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
-              <h3 className="text-lg font-extrabold tracking-tight text-foreground">No projects yet. Create your first.</h3>
+              <h3 className="text-lg font-extrabold tracking-tight text-foreground">A blank drafting table.</h3>
               <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted">
-                Projects group your diagrams into one workspace.
+                Projects keep one system&apos;s diagrams pinned together. Start one and the table fills up fast.
               </p>
               <div className="mt-6">
                 <button type="button" onClick={() => setProjectModalOpen(true)} className="uiverse-btn">

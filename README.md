@@ -220,4 +220,4 @@ Commits follow Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Proprietary — © 2026 BJVR. All rights reserved. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
