@@ -24,7 +24,6 @@ export function AuthForm({ mode, hasGithub = false, hasGoogle = false }: AuthFor
   const [error, setError] = React.useState<string | null>(null);
 
   const isLogin = mode === "login";
-  const oauthUnconfigured = !hasGithub || !hasGoogle;
 
   const handleDemo = async (): Promise<void> => {
     setLoading("demo");
@@ -110,24 +109,6 @@ export function AuthForm({ mode, hasGithub = false, hasGoogle = false }: AuthFor
           </svg>
           Google
         </Button>
-      </div>
-
-      {oauthUnconfigured ? (
-        <p className="text-center text-xs text-slate-400">
-          OAuth requires GITHUB_CLIENT_ID / GOOGLE_CLIENT_ID in .env
-        </p>
-      ) : null}
-
-      <div className="rounded-xl border border-dashed border-line bg-surface px-4 py-3">
-        <p className="text-center text-[12.5px] font-semibold text-foreground">
-          {isLogin ? "Email sign-in isn't available yet" : "Accounts are created via OAuth or demo access"}
-        </p>
-        <p className="mt-1 text-center text-[11.5px] leading-relaxed text-muted">
-          This preview build offers{" "}
-          <span className="font-semibold text-foreground">demo access</span> and{" "}
-          <span className="font-semibold text-foreground">GitHub / Google sign-in</span>. Email and
-          password accounts are on the roadmap.
-        </p>
       </div>
 
       {error ? (

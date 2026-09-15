@@ -7,8 +7,8 @@ export function Footer(): React.ReactElement {
   return (
     <footer className="border-t border-line bg-surface/50 py-14">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 px-4 sm:px-6 md:flex-row lg:px-8">
-        <div className="flex items-center overflow-hidden rounded-xl bg-black">
-          <Image src="/logo.png" alt="ArchVision AI" width={572} height={126} className="h-8 w-auto" />
+        <div className="flex items-center">
+          <Image src="/logo.png" alt="ArchVision AI" width={572} height={126} className="h-10 w-auto" />
         </div>
         <nav className="flex items-center gap-6 text-sm text-muted-foreground" aria-label="Footer">
           <Link href="/#features" className="transition-colors hover:text-foreground">Features</Link>

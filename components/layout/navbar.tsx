@@ -35,16 +35,11 @@ function initialsOf(user: NavUser | null | undefined): string {
 }
 
 export function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }): React.ReactElement {
-  const heights = { sm: "h-7", md: "h-8", lg: "h-10" };
+  const heights = { sm: "h-8", md: "h-10", lg: "h-12" };
   return (
     <Link href="/" className="group flex items-center" aria-label="ArchVision AI home">
-      <span
-        className={cn(
-          "flex items-center overflow-hidden rounded-xl bg-black transition-transform duration-300 group-hover:scale-[1.02]",
-          heights[size]
-        )}
-      >
-        <Image src="/logo.png" alt="ArchVision AI" width={572} height={126} className="h-full w-auto" priority />
+      <span className="flex items-center transition-transform duration-300 group-hover:scale-[1.02]">
+        <Image src="/logo.png" alt="ArchVision AI" width={572} height={126} className={cn(heights[size], "w-auto")} priority />
       </span>
     </Link>
   );
