@@ -402,26 +402,23 @@ export function Toolbar({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="flex items-center">
-          <Button
-            size="sm"
-            onClick={() => setSidePanel("ai")}
-            aria-label="AI Assist — chat to edit this diagram"
-            className="rounded-r-none"
-          >
-            <Bot className="h-4 w-4" />
-            AI Assist
-          </Button>
-          <DropdownMenu open={aiMenuOpen} onOpenChange={setAiMenuOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                size="sm"
-                aria-label="More AI actions"
-                className="rounded-l-none border-l border-white/25 px-2"
-              >
-                <ChevronDown className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
+        <div className="uiverse-btn uiverse-sm uiverse-split flex items-center">
+          <div className="uiverse-btn-inner">
+            <button
+              type="button"
+              onClick={() => setSidePanel("ai")}
+              aria-label="AI Assist — chat to edit this diagram"
+              className="uiverse-split-main"
+            >
+              <Bot className="h-4 w-4" />
+              AI Assist
+            </button>
+            <DropdownMenu open={aiMenuOpen} onOpenChange={setAiMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <button type="button" aria-label="More AI actions" className="uiverse-split-toggle">
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-72">
               <DropdownMenuLabel>AI actions</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => setSidePanel("ai")}>
@@ -441,6 +438,7 @@ export function Toolbar({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
       </div>
     </div>

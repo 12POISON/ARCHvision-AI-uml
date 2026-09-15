@@ -270,6 +270,69 @@
     box-shadow: 0 0 0 2px var(--stone-50);
   }
 
+  /* Split-button variant (e.g. editor AI Assist + chevron).
+     Outer keeps the hard-shadow pill; inner re-enables clicks for segments.
+     Toolbar tuning: no diagonal offset (stays centered in h-12 bar), compact
+     shadow + clearance margin so nothing clips in the overflow-x toolbar. */
+  .uiverse-btn.uiverse-split {
+    padding: 1px;
+    transform: none;
+    flex-shrink: 0;
+    align-self: center;
+    margin: 0 8px 4px 4px;
+    font-size: 0.85rem;
+    line-height: 1;
+    box-shadow: 1px 1px 0 0 var(--stone-800), 2px 2px 0 0 var(--stone-800),
+      0 0 0 2px var(--stone-50), 1px 1px 0 2px var(--stone-50),
+      2px 2px 0 2px var(--stone-50);
+  }
+  .uiverse-btn.uiverse-split:hover {
+    transform: none;
+    box-shadow: 1px 1px 0 0 var(--stone-800), 2px 2px 0 0 var(--stone-800),
+      0 0 0 2px var(--stone-50), 1px 1px 0 2px var(--stone-50),
+      2px 2px 0 2px var(--stone-50);
+  }
+  .uiverse-btn.uiverse-split-inner,
+  .uiverse-split .uiverse-btn-inner {
+    pointer-events: auto;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+  }
+  .uiverse-btn.uiverse-split-inner::before,
+  .uiverse-split .uiverse-btn-inner::before {
+    pointer-events: none;
+  }
+  .uiverse-split-main,
+  .uiverse-split-toggle {
+    pointer-events: auto;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: transparent;
+    border: 0;
+    color: var(--stone-800);
+    font: inherit;
+    cursor: pointer;
+    padding: 0.5rem 0.9rem;
+  }
+  .uiverse-split-toggle {
+    border-left: 2px solid rgba(41, 37, 36, 0.18);
+    padding-left: 0.55rem;
+    padding-right: 0.65rem;
+  }
+  .uiverse-split-main:hover,
+  .uiverse-split-toggle:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+  .uiverse-split-main:focus-visible,
+  .uiverse-split-toggle:focus-visible {
+    outline: 2px dashed var(--yellow-400);
+    outline-offset: -4px;
+  }
+
   .input-base {
     @apply w-full bg-white border border-line rounded-btn2 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all duration-300;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
