@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Database, GitBranch, Languages, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const FEATURES = [
   {
@@ -58,11 +57,13 @@ export function AISection(): React.ReactElement {
               )}
             </div>
 
-            <Link href="/login" className="mt-9 inline-block">
-              <Button size="lg">
-                Start building
-                <GitBranch className="ml-1 h-4 w-4" />
-              </Button>
+            <Link href="/login" className="uiverse-btn uiverse-lg mt-9 inline-block">
+              <div className="uiverse-btn-inner">
+                <span className="uiverse-btn-label">
+                  Start building
+                  <GitBranch className="ml-1 h-4 w-4" />
+                </span>
+              </div>
             </Link>
           </div>
 

@@ -179,10 +179,14 @@ export function DashboardView({ user }: DashboardViewProps): React.ReactElement 
                 Projects group your diagrams into one workspace.
               </p>
               <div className="mt-6">
-                <Button onClick={() => setProjectModalOpen(true)}>
-                  <FilePlus2 className="h-4 w-4" />
-                  Create your first project
-                </Button>
+                <button type="button" onClick={() => setProjectModalOpen(true)} className="uiverse-btn">
+                  <div className="uiverse-btn-inner">
+                    <span className="uiverse-btn-label">
+                      <FilePlus2 className="h-4 w-4" />
+                      Create your first project
+                    </span>
+                  </div>
+                </button>
               </div>
             </div>
           ) : (

@@ -159,11 +159,13 @@ export function Navbar({ user }: { user?: NavUser | null } = {}): React.ReactEle
               <Link href="/login">
                 <Button variant="ghost" size="sm">Sign in</Button>
               </Link>
-              <Link href="/register">
-                <Button size="sm">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Get started
-                </Button>
+              <Link href="/register" className="uiverse-btn uiverse-sm">
+                <div className="uiverse-btn-inner">
+                  <span className="uiverse-btn-label">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Get started
+                  </span>
+                </div>
               </Link>
             </div>
           )}

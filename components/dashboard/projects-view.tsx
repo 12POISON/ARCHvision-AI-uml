@@ -70,10 +70,14 @@ export function ProjectsView(): React.ReactElement {
             Create your first project to start turning visions into diagrams.
           </p>
           <div className="mt-6">
-            <Button onClick={() => setModalOpen(true)}>
-              <FolderPlus className="h-4 w-4" />
-              Create your first project
-            </Button>
+            <button type="button" onClick={() => setModalOpen(true)} className="uiverse-btn">
+              <div className="uiverse-btn-inner">
+                <span className="uiverse-btn-label">
+                  <FolderPlus className="h-4 w-4" />
+                  Create your first project
+                </span>
+              </div>
+            </button>
           </div>
         </div>
       ) : (

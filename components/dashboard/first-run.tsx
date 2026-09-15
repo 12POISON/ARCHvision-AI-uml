@@ -72,10 +72,14 @@ export function FirstRunOnboarding({ projects }: { projects: Project[] }): React
       </div>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <Button size="lg" onClick={() => setModalOpen(true)}>
-          <Sparkles className="h-4 w-4" />
-          Describe a system — AI drafts it
-        </Button>
+        <button type="button" onClick={() => setModalOpen(true)} className="uiverse-btn uiverse-lg">
+          <div className="uiverse-btn-inner">
+            <span className="uiverse-btn-label">
+              <Sparkles className="h-4 w-4" />
+              Describe a system — AI drafts it
+            </span>
+          </div>
+        </button>
         <Button size="lg" variant="outline" disabled={!!starting} onClick={() => void startFromTemplate(TEMPLATES[0])}>
           {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
           Start from a template

@@ -69,12 +69,17 @@ export function Hero({ authed = false }: { authed?: boolean }): React.ReactEleme
             animate="visible"
             className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row"
           >
-            <Link href={authed ? "/dashboard" : "/register"}>
-              <Button size="lg" className="w-full sm:w-auto">
-                <Wand2 className="h-4 w-4" />
-                {authed ? "Open your workspace" : "Start building"}
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+            <Link
+              href={authed ? "/dashboard" : "/register"}
+              className="uiverse-btn uiverse-lg w-full sm:w-auto"
+            >
+              <div className="uiverse-btn-inner">
+                <span className="uiverse-btn-label">
+                  <Wand2 className="h-4 w-4" />
+                  {authed ? "Open your workspace" : "Start building"}
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </div>
             </Link>
             <a href="#preview">
               <Button size="lg" variant="outline" className="w-full sm:w-auto">
